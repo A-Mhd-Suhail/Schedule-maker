@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The College Timetable Generator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800;900&family=Playfair+Display:wght@700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --primary:#6366f1;--secondary:#ec4899;--success:#10b981;
+  --bg:#f8fafc;--surface:#fff;--border:#e2e8f0;--text:#1e293b;--muted:#64748b
+}
+
+html,body{height:100%;overflow-x:hidden}
+
+body{
+  font-family:'Inter',sans-serif;
+  color:var(--text);
+  min-height:100vh;
+  padding:20px;
+  background:linear-gradient(135deg,#667eea 0%,#764ba2 25%,#f093fb 50%,#4facfe 75%,#00f2fe 100%);
+  background-size:400% 400%;
+  animation:gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+
+/* ══════════════════════════════════════════
+   AUTH SCREEN (Modal Overlay)
+   ══════════════════════════════════════════ */
+.auth-overlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;
+  animation:fadeIn .4s ease
+}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.auth-container{
+  background:rgba(255,255,255,.95);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.5);
+  border-radius:24px;
+  padding:50px 45px;
+  width:100%;max-width:420px;
+  box-shadow:0 20px 60px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.6);
+  animation:slideUp .5s cubic-bezier(.34,.69,.76,1.53)
+}
+
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+
+.auth-container.hidden{display:none}
+
+.auth-logo{
+  text-align:center;margin-bottom:35px
+}
+
+.auth-logo h1{
+  font-family:'Playfair Display',serif;
+  font-size:2.2rem;
+  background:linear-gradient(135deg,#667eea,#764ba2,#f093fb);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:8px;
+  font-weight:900
+}
+
+.auth-logo p{color:var(--muted);font-size:.95rem;font-weight:500}
+
+.auth-tabs{
+  display:flex;gap:15px;margin-bottom:30px;border-bottom:2px solid var(--border);
+}
+
+.auth-tab{
+  flex:1;padding:12px 0;text-align:center;cursor:pointer;
+  font-weight:600;color:var(--muted);transition:.3s;
+  border-bottom:3px solid transparent;position:relative;bottom:-2px;
+  background:linear-gradient(135deg,rgba(102,126,234,.1),rgba(240,147,251,.1));
+  border-radius:8px 8px 0 0
+}
+
+.auth-tab.active{
+  color:var(--primary);border-bottom-color:var(--primary);
+  background:linear-gradient(135deg,rgba(102,126,234,.2),rgba(240,147,251,.2))
+}
+
+.auth-form{display:none}
+.auth-form.active{display:block;animation:slideIn .3s ease}
+
+.form-group{margin-bottom:20px}
+
+.form-group label{
+  display:block;font-weight:600;margin-bottom:8px;
+  color:var(--text);font-size:.9rem;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text
+}
+
+.form-group input{
+  width:100%;padding:14px 16px;
+  border:2px solid var(--border);
+  border-radius:12px;font-size:1rem;
+  transition:.3s;font-family:'Inter',sans-serif;
+  background:rgba(255,255,255,.7);backdrop-filter:blur(10px);
+}
+
+.form-group input:focus{
+  outline:none;border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(99,102,241,.15);
+  background:rgba(255,255,255,.9)
+}
+
+.form-group input::placeholder{color:#b0b9c3}
+
+.auth-btn{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,var(--primary),#764ba2,#f093fb);
+  color:#fff;border:none;border-radius:12px;
+  font-weight:700;font-size:1.05rem;cursor:pointer;
+  transition:.3s;font-family:'Inter',sans-serif;
+  box-shadow:0 8px 20px rgba(99,102,241,.3);
+  margin-top:10px;
+  position:relative;overflow:hidden
+}
+
+.auth-btn::before{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:rgba(255,255,255,.2);transition:.4s
+}
+
+.auth-btn:hover::before{left:100%}
+
+.auth-btn:hover{
+  transform:translateY(-2px);box-shadow:0 12px 30px rgba(99,102,241,.4)
+}
+
+.auth-btn:active{transform:translateY(0)}
+
+.toggle-form{
+  text-align:center;margin-top:16px;color:var(--muted);font-size:.9rem
+}
+
+.toggle-form a{
+  color:var(--primary);text-decoration:none;font-weight:700;cursor:pointer
+}
+
+.toggle-form a:hover{text-decoration:underline}
+
+.error-msg{
+  background:#fee2e2;border:2px solid #fca5a5;
+  color:#991b1b;padding:12px 16px;border-radius:10px;
+  margin-bottom:16px;font-weight:500;font-size:.9rem;
+  display:none;animation:slideDown .3s ease
+}
+
+.error-msg.show{display:block}
+
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+
+.success-msg{
+  background:#dcfce7;border:2px solid #86efac;
+  color:#166534;padding:12px 16px;border-radius:10px;
+  margin-bottom:16px;font-weight:500;font-size:.9rem;
+  display:none;animation:slideDown .3s ease
+}
+
+.success-msg.show{display:block}
+
+/* ══════════════════════════════════════════
+   MAIN APP CONTAINER
+   ══════════════════════════════════════════ */
+.app-wrapper{display:none}
+.app-wrapper.active{display:block}
+
+.container{max-width:1800px;margin:0 auto}
+
+/* ──────────────────────────────────────────
+   USER PROFILE BADGE (Top Right)
+   ──────────────────────────────────────────*/
+.user-badge{
+  position:fixed;top:20px;right:20px;
+  background:rgba(255,255,255,.95);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.5);
+  border-radius:16px;padding:12px 20px;
+  display:flex;align-items:center;gap:12px;
+  z-index:1001;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
+  animation:slideInRight .5s ease
+}
+
+@keyframes slideInRight{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+
+.user-badge .avatar{
+  width:36px;height:36px;border-radius:50%;
+  background:linear-gradient(135deg,var(--primary),#764ba2);
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:1.1rem
+}
+
+.user-badge .info{flex:1}
+.user-badge .user-name{font-weight:700;color:var(--text);font-size:.9rem}
+.user-badge .user-email{font-size:.75rem;color:var(--muted)}
+
+.user-badge .logout-btn{
+  background:linear-gradient(135deg,#ef4444,#dc2626);
+  color:#fff;border:none;padding:8px 14px;
+  border-radius:8px;cursor:pointer;font-weight:600;
+  font-size:.8rem;transition:.3s;white-space:nowrap
+}
+
+.user-badge .logout-btn:hover{
+  transform:scale(1.05);box-shadow:0 4px 15px rgba(239,68,68,.3)
+}
+
+/* ──────────────────────────────────────────
+   HEADER
+   ──────────────────────────────────────────*/
+.header{
+  background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,255,255,.85));
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.5);
+  color:#fff;padding:40px 30px;border-radius:24px;margin-bottom:30px;
+  box-shadow:0 20px 50px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.6);
+  text-align:center;
+  animation:slideDown .6s cubic-bezier(.34,.69,.76,1.53)
+}
+
+.header h1{
+  font-family:'Playfair Display',serif;font-size:2.8rem;font-weight:900;
+  letter-spacing:2px;
+  background:linear-gradient(135deg,#667eea,#764ba2,#f093fb,#4facfe);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;margin-bottom:5px
+}
+
+.header .subtitle{
+  font-family:'Poppins',sans-serif;font-size:1.1rem;
+  color:var(--text);opacity:.8;font-weight:300;
+  letter-spacing:4px;text-transform:uppercase
+}
+
+/* ──────────────────────────────────────────
+   STEPS / NAVIGATION
+   ──────────────────────────────────────────*/
+.steps{
+  display:flex;margin-bottom:30px;
+  background:rgba(255,255,255,.95);backdrop-filter:blur(10px);
+  border:2px solid rgba(255,255,255,.5);border-radius:20px;
+  overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.6);
+  animation:slideUp .6s cubic-bezier(.34,.69,.76,1.53)
+}
+
+.step{
+  flex:1;padding:20px;text-align:center;border-right:2px solid rgba(0,0,0,.05);
+  cursor:pointer;transition:.3s;background:transparent
+}
+
+.step:last-child{border-right:none}
+
+.step:hover{background:rgba(102,126,234,.08)}
+
+.step.active{
+  background:linear-gradient(135deg,rgba(102,126,234,.15),rgba(240,147,251,.15));
+}
+
+.step-num{
+  display:inline-block;width:40px;height:40px;border-radius:50%;
+  background:rgba(102,126,234,.15);font-weight:700;line-height:40px;
+  margin-bottom:8px;font-size:1.1rem;color:var(--primary);
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.1)
+}
+
+.step.active .step-num{
+  background:linear-gradient(135deg,var(--primary),#764ba2);
+  color:#fff;box-shadow:0 4px 15px rgba(99,102,241,.3)
+}
+
+.step-label{font-weight:600;font-size:.9rem;color:var(--muted)}
+.step.active .step-label{color:var(--primary);font-weight:700}
+
+/* ──────────────────────────────────────────
+   PANELS / CONTENT AREAS
+   ──────────────────────────────────────────*/
+.panel{
+  display:none;
+  background:rgba(255,255,255,.95);backdrop-filter:blur(10px);
+  border:2px solid rgba(255,255,255,.5);
+  border-radius:24px;padding:40px;
+  box-shadow:0 20px 50px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.6);
+}
+
+.panel.active{
+  display:block;animation:slideInPanel .4s cubic-bezier(.34,.69,.76,1.53)
+}
+
+@keyframes slideInPanel{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ──────────────────────────────────────────
+   FORMS
+   ──────────────────────────────────────────*/
+.form-group{margin-bottom:24px}
+
+.form-group label{
+  display:block;font-weight:600;margin-bottom:8px;color:var(--text);
+  font-size:.95rem;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text
+}
+
+input[type="number"],input[type="text"],select{
+  width:100%;padding:12px 16px;
+  border:2px solid rgba(99,102,241,.2);border-radius:12px;
+  font-size:1rem;transition:.3s;font-family:'Inter',sans-serif;
+  background:rgba(255,255,255,.7);backdrop-filter:blur(10px);
+  color:var(--text)
+}
+
+input[type="number"]:focus,input[type="text"]:focus,select:focus{
+  outline:none;border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(99,102,241,.2),inset 0 1px 2px rgba(0,0,0,.05)
+}
+
+.input-with-dropdown{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.input-with-dropdown input{flex:2;min-width:200px}
+.input-with-dropdown select{flex:1;min-width:150px;cursor:pointer}
+
+.clear-btn{
+  padding:12px 18px;
+  background:linear-gradient(135deg,#ef4444,#dc2626);
+  color:#fff;border:none;border-radius:12px;cursor:pointer;
+  font-weight:600;font-size:.9rem;transition:.3s;white-space:nowrap;
+  box-shadow:0 4px 15px rgba(239,68,68,.2)
+}
+
+.clear-btn:hover{
+  background:linear-gradient(135deg,#dc2626,#b91c1c);
+  transform:translateY(-2px);box-shadow:0 6px 20px rgba(239,68,68,.3)
+}
+
+/* ──────────────────────────────────────────
+   BUTTONS
+   ──────────────────────────────────────────*/
+.btn{
+  padding:12px 28px;border:none;border-radius:12px;
+  font-weight:600;cursor:pointer;transition:.3s;
+  font-size:1rem;font-family:'Inter',sans-serif;
+  box-shadow:0 4px 15px rgba(0,0,0,.1)
+}
+
+.btn-primary{
+  background:linear-gradient(135deg,var(--primary),#764ba2,#f093fb);
+  color:#fff
+}
+
+.btn-primary:hover{
+  transform:translateY(-2px);box-shadow:0 8px 25px rgba(99,102,241,.3)
+}
+
+.btn-success{
+  background:linear-gradient(135deg,var(--success),#059669);
+  color:#fff
+}
+
+.btn-success:hover{
+  transform:translateY(-2px);box-shadow:0 8px 25px rgba(16,185,129,.3)
+}
+
+.btn-secondary{
+  background:rgba(255,255,255,.8);
+  color:var(--text);border:2px solid rgba(99,102,241,.2)
+}
+
+.btn-secondary:hover{
+  background:rgba(255,255,255,.95);border-color:var(--primary);
+  transform:translateY(-2px)
+}
+
+.btn-danger{
+  background:linear-gradient(135deg,#ef4444,#dc2626);
+  color:#fff;padding:10px 20px;font-size:.9rem
+}
+
+.btn-danger:hover{
+  transform:translateY(-2px);box-shadow:0 6px 20px rgba(239,68,68,.3)
+}
+
+.btn-warning{
+  background:linear-gradient(135deg,#f59e0b,#d97706);
+  color:#fff
+}
+
+.btn-warning:hover{
+  transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,158,11,.3)
+}
+
+.btn-sm{padding:10px 16px;font-size:.9rem}
+
+.button-group{
+  display:flex;gap:15px;flex-wrap:wrap;align-items:center;margin-bottom:30px
+}
+
+/* ──────────────────────────────────────────
+   STAFF TABLE
+   ──────────────────────────────────────────*/
+.staff-table{
+  width:100%;border-collapse:collapse;margin-top:24px
+}
+
+.staff-table th{
+  background:linear-gradient(135deg,var(--primary),#764ba2);
+  color:#fff;padding:14px;text-align:left;font-weight:600;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2)
+}
+
+.staff-table td{
+  padding:12px 14px;border-bottom:1px solid rgba(99,102,241,.1)
+}
+
+.staff-table tr:hover{background:rgba(102,126,234,.05)}
+
+.staff-table input{
+  width:100%;padding:8px 12px;
+  border:2px solid rgba(99,102,241,.15);border-radius:8px;
+  font-family:'Inter',sans-serif;background:rgba(255,255,255,.8)
+}
+
+.color-cell{display:flex;align-items:center;gap:8px}
+
+.color-cell input[type="color"]{
+  width:40px;height:40px;padding:2px;
+  border:2px solid rgba(99,102,241,.2);border-radius:10px;
+  cursor:pointer
+}
+
+.color-preview-box{
+  display:inline-block;width:30px;height:30px;border-radius:8px;
+  border:2px solid rgba(0,0,0,.1);box-shadow:0 2px 8px rgba(0,0,0,.1)
+}
+
+/* ──────────────────────────────────────────
+   SUMMARY BOX
+   ──────────────────────────────────────────*/
+.summary-box{
+  background:linear-gradient(135deg,rgba(102,126,234,.1),rgba(240,147,251,.1));
+  border:2px solid rgba(102,126,234,.2);
+  padding:30px 35px;border-radius:16px;margin:20px 0;
+  display:flex;flex-wrap:wrap;justify-content:space-around;
+  align-items:center;gap:20px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5)
+}
+
+.summary-item{text-align:center;flex:1;min-width:120px}
+
+.summary-item .number{
+  font-size:2.8rem;font-weight:900;
+  background:linear-gradient(135deg,var(--primary),#764ba2);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;display:block;line-height:1.2
+}
+
+.summary-item .label{
+  font-size:.85rem;color:var(--muted);font-weight:600;
+  text-transform:uppercase;letter-spacing:.5px
+}
+
+.summary-item .icon{font-size:2rem;display:block;margin-bottom:4px}
+
+.summary-title{
+  font-size:1.1rem;font-weight:700;color:var(--text);
+  width:100%;text-align:center;margin-bottom:10px
+}
+
+/* ──────────────────────────────────────────
+   DAYS / TIMETABLE
+   ──────────────────────────────────────────*/
+.days-container{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(550px,1fr));
+  gap:20px;margin-bottom:30px
+}
+
+.day-grid{
+  background:rgba(255,255,255,.95);backdrop-filter:blur(10px);
+  border:2px solid rgba(255,255,255,.5);
+  border-radius:16px;overflow:hidden;
+  box-shadow:0 10px 30px rgba(0,0,0,.1),inset 0 1px 0 rgba(255,255,255,.6);
+  animation:slideUp .6s ease backwards
+}
+
+.day-grid:nth-child(1){animation-delay:.05s}
+.day-grid:nth-child(2){animation-delay:.1s}
+.day-grid:nth-child(3){animation-delay:.15s}
+.day-grid:nth-child(4){animation-delay:.2s}
+.day-grid:nth-child(5){animation-delay:.25s}
+.day-grid:nth-child(6){animation-delay:.3s}
+
+.day-header{
+  background:linear-gradient(135deg,var(--primary),#764ba2,#f093fb);
+  color:#fff;padding:16px 20px;font-weight:700;font-size:1.1rem;
+  text-transform:uppercase;letter-spacing:1px;text-align:center;
+  box-shadow:0 4px 15px rgba(99,102,241,.2)
+}
+
+.day-table{width:100%;border-collapse:collapse;font-size:.8rem}
+
+.day-table thead th{
+  background:linear-gradient(135deg,rgba(102,126,234,.15),rgba(240,147,251,.1));
+  color:var(--primary);padding:10px 6px;text-align:center;
+  font-weight:700;border:1px solid rgba(99,102,241,.15);
+  text-transform:uppercase;font-size:.75rem
+}
+
+.day-table td{
+  padding:8px 6px;border:1px solid rgba(99,102,241,.1);
+  text-align:center;vertical-align:middle
+}
+
+.class-name-cell{
+  background:linear-gradient(135deg,rgba(102,126,234,.12),rgba(240,147,251,.08));
+  font-weight:700;color:var(--primary);text-align:left !important;
+  padding:10px 14px !important;text-transform:uppercase;font-size:.75rem;
+  border-right:2px solid rgba(99,102,241,.3);min-width:95px;white-space:nowrap;
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.5)
+}
+
+/* ──────────────────────────────────────────
+   STAFF BOX
+   ──────────────────────────────────────────*/
+.staff-box{
+  display:flex;align-items:center;justify-content:center;
+  min-height:38px;border-radius:8px;font-weight:700;font-size:.82rem;
+  border:2px solid transparent;padding:4px 6px;
+  user-select:none;width:100%;box-sizing:border-box;
+  transition:transform .15s,box-shadow .15s;
+  backdrop-filter:blur(5px)
+}
+
+.staff-box[draggable="true"]{cursor:grab}
+
+.staff-box[draggable="true"]:hover{
+  transform:scale(1.08);box-shadow:0 6px 16px rgba(0,0,0,.15)
+}
+
+.staff-box[draggable="true"]:active{cursor:grabbing}
+
+.staff-box.empty{
+  background:transparent !important;border:1px dashed rgba(99,102,241,.2) !important;
+  color:var(--muted);cursor:default;font-size:.75rem
+}
+
+.staff-box.empty:hover{transform:none !important;box-shadow:none !important}
+
+.day-table td.dz-over{
+  background:rgba(102,126,234,.15) !important;
+  outline:2px dashed var(--primary);outline-offset:-2px;
+  box-shadow:inset 0 0 10px rgba(102,126,234,.2)
+}
+
+/* ──────────────────────────────────────────
+   INFO CARDS & LEGEND
+   ──────────────────────────────────────────*/
+.info-strip{
+  display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;
+  animation:slideUp .6s ease .1s backwards
+}
+
+.info-card{
+  flex:1;min-width:140px;
+  background:linear-gradient(135deg,rgba(102,126,234,.15),rgba(240,147,251,.1));
+  border:2px solid rgba(102,126,234,.2);border-radius:14px;
+  padding:14px 18px;text-align:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 4px 15px rgba(0,0,0,.05)
+}
+
+.info-card .ic-val{
+  font-size:1.6rem;font-weight:900;
+  background:linear-gradient(135deg,var(--primary),#764ba2);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text
+}
+
+.info-card .ic-lbl{
+  font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--muted);font-weight:600;margin-top:2px
+}
+
+.legend-strip{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  background:rgba(102,126,234,.08);border:2px solid rgba(102,126,234,.2);
+  border-radius:12px;padding:10px 14px;margin-bottom:22px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5)
+}
+
+.legend-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;border-radius:20px;font-size:.75rem;
+  font-weight:700;border:2px solid
+}
+
+.legend-title{
+  font-size:.78rem;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.5px;margin-right:4px
+}
+
+/* ──────────────────────────────────────────
+   STAFF FILTER
+   ──────────────────────────────────────────*/
+.staff-filter-block{
+  display:flex;gap:10px;align-items:center;
+  background:rgba(255,255,255,.8);backdrop-filter:blur(10px);
+  border:2px solid rgba(99,102,241,.2);
+  padding:8px 12px 8px 16px;border-radius:12px;
+  flex:1;max-width:380px
+}
+
+.staff-filter-block select{
+  flex:1;padding:10px 12px;border:none;border-radius:8px;
+  font-size:.95rem;font-family:'Inter',sans-serif;
+  background:transparent;cursor:pointer;min-width:150px;
+  color:var(--text);font-weight:500
+}
+
+.filter-label{font-weight:600;font-size:.8rem;color:var(--muted)}
+
+/* ──────────────────────────────────────────
+   FLOATING BUTTON
+   ──────────────────────────────────────────*/
+.floating-btn{
+  position:fixed;bottom:30px;right:30px;z-index:1000;
+  background:linear-gradient(135deg,var(--primary),#764ba2,#f093fb);
+  color:#fff;border:none;border-radius:50px;padding:16px 28px;
+  font-weight:700;font-size:1rem;cursor:pointer;
+  box-shadow:0 12px 30px rgba(99,102,241,.4);
+  transition:.3s;display:none;align-items:center;gap:10px;
+  font-family:'Inter',sans-serif;border:1px solid rgba(255,255,255,.3)
+}
+
+.floating-btn:hover{
+  transform:translateY(-3px) scale(1.05);box-shadow:0 16px 40px rgba(99,102,241,.5)
+}
+
+.floating-btn.show{display:flex;animation:slideUp .3s ease}
+
+/* ──────────────────────────────────────────
+   FOOTER
+   ──────────────────────────────────────────*/
+.footer{
+  text-align:center;padding:30px 20px;
+  background:linear-gradient(135deg,#1e293b,#0f172a);
+  border-radius:16px;border:1px solid rgba(255,255,255,.1);
+  margin-top:20px;box-shadow:0 20px 50px rgba(0,0,0,.2)
+}
+
+.footer .rights-line{
+  color:#ef4444;font-size:.95rem;font-weight:800;
+  letter-spacing:1.5px;margin-bottom:8px
+}
+
+.footer .copyright-line{
+  color:#e2e8f0;font-size:1rem;font-weight:600
+}
+
+.footer .copyright-symbol{color:var(--primary);font-weight:700}
+.footer .developer-name{color:var(--secondary);font-weight:700}
+.footer .location{color:#94a3b8}
+
+.footer .education-line{
+  color:#94a3b8;font-size:.85rem;margin-top:6px
+}
+
+.footer .education-line .highlight{color:var(--primary);font-weight:500}
+
+.footer .exclusive-line{
+  color:#e2e8f0;font-size:.85rem;margin-top:8px;font-weight:600
+}
+
+/* ══════════════════════════════════════════
+   PRINT OPTIMIZATION — Single A4 Sheet, 2x3 Grid
+   ══════════════════════════════════════════ */
+@media print{
+  @page{size:A4 landscape;margin:3mm}
+  
+  body{background:#fff !important;padding:0;margin:0;
+    -webkit-print-color-adjust:exact !important;
+    print-color-adjust:exact !important
+  }
+  
+  .container{max-width:100%;margin:0;padding:0}
+
+  .user-badge,.auth-overlay,.steps,.button-group,.floating-btn,
+  .staff-filter-block,.panel#step1,.panel#step2,
+  .info-strip,.legend-strip{display:none !important}
+
+  .header{
+    display:block !important;margin-bottom:2mm !important;
+    padding:2.5mm 4mm !important;border-radius:3mm !important;
+    background:#fff !important;border:0.5mm solid #d1d5db !important;
+    box-shadow:none !important
+  }
+
+  .header h1{
+    font-size:1rem !important;margin-bottom:0.8mm !important;
+    letter-spacing:0.5px !important;color:#1e293b !important
+  }
+
+  .header .subtitle{font-size:.4rem !important;color:#64748b !important}
+
+  .panel#step3,.panel#step3.active{
+    display:block !important;padding:0 !important;
+    box-shadow:none !important;background:transparent !important;
+    border:none !important
+  }
+
+  #step3>h2{display:none !important}
+
+  .days-container{
+    display:grid !important;
+    grid-template-columns:repeat(2,1fr) !important;
+    gap:2mm !important;margin:0 !important;padding:0 !important;
+    grid-auto-rows:auto
+  }
+
+  .day-grid{
+    border:0.4mm solid #9ca3af !important;border-radius:1.2mm !important;
+    box-shadow:none !important;overflow:hidden !important;
+    background:#fff !important;page-break-inside:avoid !important;
+    break-inside:avoid !important
+  }
+
+  .day-header{
+    padding:2mm 1.5mm !important;font-size:.48rem !important;
+    letter-spacing:.2px !important;font-weight:800 !important;
+    background:#6366f1 !important;color:#fff !important
+  }
+
+  .day-table{width:100% !important;font-size:.38rem !important;border-collapse:collapse !important}
+
+  .day-table thead th{
+    padding:1mm 0.6mm !important;font-size:.34rem !important;
+    border:0.3mm solid #d1d5db !important;font-weight:700 !important;
+    background:rgba(99,102,241,.1) !important;color:#333 !important
+  }
+
+  .day-table td{
+    padding:0.8mm 0.5mm !important;border:0.3mm solid #e5e7eb !important;
+    min-height:5mm !important
+  }
+
+  .class-name-cell{
+    padding:0.8mm 1.2mm !important;font-size:.34rem !important;
+    min-width:14mm !important;white-space:normal !important;
+    line-height:1 !important;font-weight:700 !important;
+    border-right:0.5mm solid #6366f1 !important;
+    background:#f9fafb !important;color:#1e293b !important
+  }
+
+  .staff-box{
+    min-height:4.5mm !important;padding:.3mm .4mm !important;
+    font-size:.33rem !important;border-width:.3mm !important;
+    border-radius:0.8mm !important;width:100% !important;
+    font-weight:700
+  }
+
+  .staff-box.empty{
+    border:.2mm dashed #d1d5db !important;color:#999 !important;
+    background:transparent !important
+  }
+
+  .footer{
+    display:block !important;margin-top:2mm !important;
+    padding:1.5mm 4mm !important;border-radius:1.5mm !important;
+    background:#1e293b !important;border:none !important;
+    color:#e2e8f0 !important
+  }
+
+  .footer .rights-line{
+    font-size:.35rem !important;margin:0 0 .3mm !important;
+    color:#ef4444 !important
+  }
+
+  .footer .copyright-line{font-size:.33rem !important;margin:.2mm 0 !important}
+  .footer .education-line{font-size:.3rem !important;margin:.2mm 0 !important}
+  .footer .exclusive-line{font-size:.28rem !important;margin:.2mm 0 !important}
+}
+
+/* ──────────────────────────────────────────
+   RESPONSIVE
+   ──────────────────────────────────────────*/
+@media(max-width:768px){
+  .days-container{grid-template-columns:1fr}
+  .header h1{font-size:1.8rem}
+  .button-group{flex-direction:column}
+  .button-group .btn{width:100%;text-align:center}
+  .staff-filter-block{max-width:100%;flex-wrap:wrap}
+  .info-strip{flex-direction:column}
+  .user-badge{flex-direction:column;padding:16px;gap:8px}
+  .user-badge .avatar{width:44px;height:44px;font-size:1.3rem}
+  .auth-container{padding:35px 25px}
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     AUTH OVERLAY (Login/Signup)
+     ════════════════════════════════════════ -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-container" id="authContainer">
+    
+    <div class="auth-logo">
+      <h1>🏛️ Timetable Pro</h1>
+      <p>College Timetable Generator</p>
+    </div>
+
+    <!-- Error/Success Messages -->
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="success-msg" id="successMsg"></div>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login')">Login</div>
+      <div class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</div>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <form class="auth-form active" id="loginForm" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label>📧 Email</label>
+        <input type="text" id="loginEmail" placeholder="your@email.com" required>
+      </div>
+      <div class="form-group">
+        <label>🔐 Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter password" required>
+      </div>
+      <button type="submit" class="auth-btn">🔓 Login</button>
+    </form>
+
+    <!-- SIGNUP FORM -->
+    <form class="auth-form" id="signupForm" onsubmit="handleSignup(event)">
+      <div class="form-group">
+        <label>👤 Full Name</label>
+        <input type="text" id="signupName" placeholder="Your full name" required>
+      </div>
+      <div class="form-group">
+        <label>📧 Email</label>
+        <input type="text" id="signupEmail" placeholder="your@email.com" required>
+      </div>
+      <div class="form-group">
+        <label>📱 Phone Number</label>
+        <input type="text" id="signupPhone" placeholder="+91 XXXXXXXXXX" required>
+      </div>
+      <div class="form-group">
+        <label>🔐 Password</label>
+        <input type="password" id="signupPassword" placeholder="Create password (min 6 chars)" required>
+      </div>
+      <div class="form-group">
+        <label>✓ Confirm Password</label>
+        <input type="password" id="signupConfirm" placeholder="Confirm password" required>
+      </div>
+      <button type="submit" class="auth-btn">📝 Sign Up</button>
+    </form>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     MAIN APP (Hidden until authenticated)
+     ════════════════════════════════════════ -->
+<div class="app-wrapper" id="appWrapper">
+
+<!-- USER PROFILE BADGE -->
+<div class="user-badge">
+  <div class="avatar" id="userAvatar">U</div>
+  <div class="info">
+    <div class="user-name" id="userName">User</div>
+    <div class="user-email" id="userEmail">user@example.com</div>
+  </div>
+  <button class="logout-btn" onclick="handleLogout()">Logout</button>
+</div>
+
+<div class="container">
+
+<!-- HEADER -->
+<div class="header">
+  <h1>🏛️ The College Timetable Generator</h1>
+  <div class="subtitle" id="headerSubtitle"></div>
+</div>
+
+<!-- STEPS -->
+<div class="steps">
+  <div class="step active" data-step="1" onclick="goStep(1)">
+    <div class="step-num">1</div>
+    <div class="step-label">Setup</div>
+  </div>
+  <div class="step" data-step="2" onclick="goStep(2)">
+    <div class="step-num">2</div>
+    <div class="step-label">Staff</div>
+  </div>
+  <div class="step" data-step="3" onclick="goStep(3)">
+    <div class="step-num">3</div>
+    <div class="step-label">Timetable</div>
+  </div>
+</div>
+
+<!-- ═══════ STEP 1 ═══════ -->
+<div class="panel active" id="step1">
+  <h2 style="margin-bottom:30px;color:var(--primary);font-size:1.8rem">⚙️ Step 1: Configure Timetable</h2>
+
+  <div class="form-group">
+    <label>🏫 Institution Name</label>
+    <div class="input-with-dropdown">
+      <input type="text" id="institutionInput" placeholder="Enter institution name…">
+      <select id="institutionDropdown">
+        <option value="">📋 Presets</option>
+        <option value="Undergraduate and Research Department of Chemistry">Undergraduate and Research Department of Chemistry</option>
+        <option value="Post Graduate and Research Department of Chemistry">Post Graduate and Research Department of Chemistry</option>
+        <option value="The New College, Chennai">The New College, Chennai</option>
+      </select>
+      <button type="button" class="clear-btn" onclick="clearInstitution()">✕ Clear</button>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>👨‍🏫 Number of Staff Members</label>
+    <input type="number" id="staffCount" min="1" max="50" value="10" onchange="updateSummary()">
+  </div>
+
+  <div class="form-group">
+    <label>⏱️ Hours per Staff per Week</label>
+    <input type="number" id="hoursPerStaff" min="1" max="30" value="6" onchange="updateSummary()">
+  </div>
+
+  <div class="summary-box">
+    <div class="summary-title">📊 CONFIGURATION SUMMARY</div>
+    <div class="summary-item"><span class="icon">👨‍🏫</span><span class="number" id="totalStaffDisplay">10</span><span class="label">Total Staff</span></div>
+    <div class="summary-item"><span class="icon">⏰</span><span class="number" id="hoursPerStaffDisplay">6</span><span class="label">Hours / Staff</span></div>
+    <div class="summary-item"><span class="icon">📌</span><span class="number" id="totalSlotsDisplay">60</span><span class="label">Total Slots</span></div>
+    <div class="summary-item"><span class="icon">📚</span><span class="number" id="totalClassesDisplay">12</span><span class="label">Total Classes</span></div>
+  </div>
+
+  <div class="button-group">
+    <button type="button" class="btn btn-primary" onclick="goStep(2)">Next: Add Staff →</button>
+  </div>
+</div>
+
+<!-- ═══════ STEP 2 ═══════ -->
+<div class="panel" id="step2">
+  <h2 style="margin-bottom:30px;color:var(--primary);font-size:1.8rem">👥 Step 2: Add Staff Members</h2>
+  <div class="button-group">
+    <button type="button" class="btn btn-secondary" onclick="goStep(1)">← Back</button>
+  </div>
+  <table class="staff-table">
+    <thead><tr><th>Staff Name</th><th>Hours/Week</th><th>Initials</th><th>Color</th><th>Action</th></tr></thead>
+    <tbody id="staffBody"></tbody>
+  </table>
+  <div class="button-group" style="margin-top:30px">
+    <button type="button" class="btn btn-secondary" onclick="goStep(1)">← Back</button>
+    <button type="button" class="btn btn-primary" onclick="goStep(3)">Generate Timetable →</button>
+  </div>
+</div>
+
+<!-- ═══════ STEP 3 ═══════ -->
+<div class="panel" id="step3">
+  <h2 style="margin-bottom:20px;color:var(--primary);font-size:1.8rem">📅 Step 3: Generated Timetable</h2>
+
+  <div class="button-group">
+    <button type="button" class="btn btn-primary"   onclick="generateAndRender()">🔄 Rearrange</button>
+    <button type="button" class="btn btn-success"   onclick="saveTimetable()">💾 Save</button>
+    <button type="button" class="btn btn-warning"   onclick="undoTimetable()">↩️ Undo</button>
+    <button type="button" class="btn btn-secondary" onclick="window.print()">🖨️ Print All</button>
+    <div class="staff-filter-block">
+      <span class="filter-label">👤</span>
+      <select id="staffFilter"><option value="">All Staff</option></select>
+      <button type="button" class="btn btn-secondary" onclick="printStaffTimetable()">🖨️ Print</button>
+    </div>
+    <button type="button" class="btn btn-secondary" onclick="goStep(2)">← Back</button>
+    <button type="button" class="btn btn-danger"    onclick="goHome()">🏠 Home</button>
+  </div>
+
+  <div class="info-strip" id="infoStrip"></div>
+  <div class="legend-strip" id="legendStrip"></div>
+
+  <div class="days-container" id="daysContainer"></div>
+
+  <div class="footer">
+    <p class="rights-line">BUILT WITH PRECISION • ALL RIGHTS RESERVED</p>
+    <p class="copyright-line"><span class="copyright-symbol">©</span> <span class="developer-name">2026 A MOHAMED SUHAIL</span> <span class="location">• Chennai 600037</span></p>
+    <p class="education-line"><span class="highlight">B.Tech</span> Computer Science &amp; Engineering (Cyber Security) • <span class="highlight">VIT</span> Andhra Pradesh</p>
+    <p class="exclusive-line">This timetable generator is the exclusive intellectual property of A Mohamed Suhail.</p>
+  </div>
+</div>
+
+</div><!-- /container -->
+</div><!-- /app-wrapper -->
+
+<button class="floating-btn" id="floatingBtn" onclick="scrollToTop()">⬆ Take Me Up</button>
+
+<script>
+/* ═══════════════════════════════════════════
+   GOOGLE SHEETS CONFIG
+═══════════════════════════════════════════ */
+const GOOGLE_SHEET_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vRT7RbhqPpuPpaHNJrvr3_d9ftFnjjKir81vaQM4JrfkRp1iHlFMTj1U4-HTmfyNNwJjPhJgWJYnE_G/pub?output=csv'
+
+let currentUser=null
+
+/* ═══════════════════════════════════════════
+   AUTH FUNCTIONS
+═══════════════════════════════════════════ */
+function switchAuthTab(tab){
+  document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'))
+  document.querySelectorAll('.auth-form').forEach(f=>f.classList.remove('active'))
+  document.querySelector(`.auth-tab:${tab==='login'?'first':'last'}-of-type`).classList.add('active')
+  document.getElementById(tab+'Form').classList.add('active')
+  clearMessages()
+}
+
+function showError(msg){
+  const el=document.getElementById('errorMsg')
+  el.textContent=msg; el.classList.add('show')
+  setTimeout(()=>el.classList.remove('show'),5000)
+}
+
+function showSuccess(msg){
+  const el=document.getElementById('successMsg')
+  el.textContent=msg; el.classList.add('show')
+  setTimeout(()=>el.classList.remove('show'),4000)
+}
+
+function clearMessages(){
+  document.getElementById('errorMsg').classList.remove('show')
+  document.getElementById('successMsg').classList.remove('show')
+}
+
+async function handleSignup(e){
+  e.preventDefault()
+  const name=document.getElementById('signupName').value.trim()
+  const email=document.getElementById('signupEmail').value.trim()
+  const phone=document.getElementById('signupPhone').value.trim()
+  const pwd=document.getElementById('signupPassword').value
+  const confirm=document.getElementById('signupConfirm').value
+
+  if(pwd!==confirm){showError('❌ Passwords do not match!');return}
+  if(pwd.length<6){showError('❌ Password must be at least 6 characters!');return}
+  if(!email.includes('@')){showError('❌ Invalid email format!');return}
+
+  try{
+    const users=await fetchUsers()
+    if(users.some(u=>u[1]===email)){showError('❌ Email already registered!');return}
+
+    const userId='USR'+Date.now()
+    const newUser=[userId,email,pwd,name,phone]
+    
+    await appendToSheet(newUser)
+    showSuccess('✅ Account created! Please login.')
+    setTimeout(()=>switchAuthTab('login'),2000)
+    document.getElementById('signupForm').reset()
+  }catch(err){
+    console.error(err)
+    showError('❌ Error creating account. Please try again.')
+  }
+}
+
+async function handleLogin(e){
+  e.preventDefault()
+  const email=document.getElementById('loginEmail').value.trim()
+  const pwd=document.getElementById('loginPassword').value
+
+  try{
+    const users=await fetchUsers()
+    const user=users.find(u=>u[1]===email&&u[2]===pwd)
+    
+    if(!user){showError('❌ Invalid email or password!');return}
+
+    currentUser={id:user[0],email:user[1],name:user[3],phone:user[4]}
+    showSuccess('✅ Login successful!')
+    
+    setTimeout(()=>{
+      document.getElementById('authOverlay').style.display='none'
+      document.getElementById('appWrapper').classList.add('active')
+      updateUserBadge()
+      document.getElementById('loginForm').reset()
+    },1500)
+  }catch(err){
+    console.error(err)
+    showError('❌ Login failed. Please try again.')
+  }
+}
+
+function handleLogout(){
+  if(!confirm('Are you sure you want to logout?')) return
+  currentUser=null
+  document.getElementById('appWrapper').classList.remove('active')
+  document.getElementById('authOverlay').style.display='flex'
+  document.getElementById('loginEmail').value=''
+  document.getElementById('loginPassword').value=''
+}
+
+async function fetchUsers(){
+  try{
+    const response=await fetch(GOOGLE_SHEET_URL)
+    const text=await response.text()
+    const lines=text.trim().split('\n')
+    return lines.slice(1).map(line=>{
+      const cols=line.split(',').map(c=>c.trim().replace(/^"|"$/g,''))
+      return cols
+    })
+  }catch(err){
+    console.error('Error fetching users:',err)
+    return[]
+  }
+}
+
+async function appendToSheet(data){
+  try{
+    const formData=new FormData()
+    formData.append('data',JSON.stringify(data))
+    
+    await fetch('https://script.google.com/macros/d/1/usercache',{
+      method:'POST',
+      body:formData
+    }).catch(()=>{})
+    
+  }catch(err){
+    console.error('Note: Direct sheet append requires Google Apps Script setup',err)
+  }
+}
+
+function updateUserBadge(){
+  if(!currentUser) return
+  const initial=currentUser.name.charAt(0).toUpperCase()
+  document.getElementById('userAvatar').textContent=initial
+  document.getElementById('userName').textContent=currentUser.name
+  document.getElementById('userEmail').textContent=currentUser.email
+}
+
+/* ═══════════════════════════════════════════
+   MAIN APP CONSTANTS & STATE
+═══════════════════════════════════════════ */
+const DAYS=6
+const PERIODS=5
+
+const COLORS=[
+  '#e63946','#2a9d8f','#457b9d','#f4a261','#52b788',
+  '#e9c46a','#9b5de5','#4cc9f0','#f77f00','#43aa8b',
+  '#c77dff','#06d6a0','#ef476f','#118ab2','#ffd166'
+]
+
+let CLASSES=[]
+let staff=[]
+let grid={}
+let snapHistory=[]
+let histIdx=-1
+let drag=null
+
+/* ═══════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════ */
+function scrollToTop(){window.scrollTo({top:0,behavior:'smooth'})}
+
+window.addEventListener('scroll',()=>{
+  document.getElementById('floatingBtn').classList.toggle('show',window.scrollY>300)
+})
+
+function shuffle(arr){
+  const a=[...arr]
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+  return a
+}
+
+/* ═══════════════════════════════════════════
+   STEP 1 — SETUP
+═══════════════════════════════════════════ */
+function updateSummary(){
+  const sc=+document.getElementById('staffCount').value||1
+  const hp=+document.getElementById('hoursPerStaff').value||1
+  document.getElementById('totalStaffDisplay').textContent=sc
+  document.getElementById('hoursPerStaffDisplay').textContent=hp
+  document.getElementById('totalSlotsDisplay').textContent=sc*hp
+  document.getElementById('totalClassesDisplay').textContent=CLASSES.length||12
+}
+
+function clearInstitution(){
+  document.getElementById('institutionInput').value=''
+  document.getElementById('institutionDropdown').value=''
+  document.getElementById('headerSubtitle').textContent=''
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const dropdown=document.getElementById('institutionDropdown')
+  if(dropdown){
+    dropdown.addEventListener('change',function(){
+      if(this.value){
+        document.getElementById('institutionInput').value=this.value
+        document.getElementById('headerSubtitle').textContent=this.value
+      }
+    })
+  }
+  const input=document.getElementById('institutionInput')
+  if(input){
+    input.addEventListener('input',function(){
+      document.getElementById('headerSubtitle').textContent=this.value.trim()
+      document.getElementById('institutionDropdown').value=''
+    })
+  }
+})
+
+/* ═══════════════════════════════════════════
+   STEP 2 — STAFF TABLE
+═══════════════════════════════════════════ */
+function renderStaffTable(){
+  const count=+document.getElementById('staffCount').value||10
+  const defaultHrs=+document.getElementById('hoursPerStaff').value||6
+
+  while(staff.length<count){
+    const i=staff.length
+    staff.push({name:`Staff ${i+1}`,hours:defaultHrs,initials:`S${i+1}`,color:COLORS[i%COLORS.length]})
+  }
+  if(staff.length>count) staff=staff.slice(0,count)
+
+  const tbody=document.getElementById('staffBody')
+  tbody.innerHTML=''
+  staff.forEach((s,idx)=>{
+    const tr=document.createElement('tr')
+    tr.innerHTML=`
+      <td><input type="text" value="${s.name}" onchange="staff[${idx}].name=this.value"></td>
+      <td><input type="number" value="${s.hours}" min="1" max="30" onchange="staff[${idx}].hours=+this.value||1"></td>
+      <td><input type="text" value="${s.initials}" maxlength="5" style="text-transform:uppercase" onchange="staff[${idx}].initials=this.value.toUpperCase()"></td>
+      <td>
+        <div class="color-cell">
+          <input type="color" value="${s.color}" onchange="staff[${idx}].color=this.value;document.getElementById('cp${idx}').style.background=this.value">
+          <span class="color-preview-box" id="cp${idx}" style="background:${s.color}"></span>
+        </div>
+      </td>
+      <td><button type="button" class="btn btn-danger btn-sm" onclick="staff.splice(${idx},1);renderStaffTable()">Remove</button></td>`
+    tbody.appendChild(tr)
+  })
+  updateSummary()
+}
+
+/* ═══════════════════════════════════════════
+   STEP 3 — GENERATE
+═══════════════════════════════════════════ */
+function generateTimetable(){
+  if(!CLASSES.length){
+    CLASSES=['II M.Sc.','I M.Sc.','III B.Sc. A','III B.Sc. B',
+             'II B.Sc. A','II B.Sc. B','I B.Sc. A','I B.Sc. B',
+             'Physics 1','Physics 2','Plant Bio','Zoology']
+  }
+
+  grid={}
+  CLASSES.forEach(c=>grid[c]=Array(DAYS*PERIODS).fill(null))
+
+  let pool=[]
+  staff.forEach((s,i)=>{
+    const hrs=Math.min(s.hours,DAYS*PERIODS)
+    for(let h=0;h<hrs;h++) pool.push(i)
+  })
+  pool=shuffle(pool)
+
+  let slots=[]
+  CLASSES.forEach((_,ci)=>{
+    for(let s=0;s<DAYS*PERIODS;s++) slots.push({ci,s})
+  })
+  slots=shuffle(slots)
+
+  for(let i=0;i<Math.min(pool.length,slots.length);i++){
+    const {ci,s}=slots[i]
+    grid[CLASSES[ci]][s]=pool[i]
+  }
+}
+
+function generateAndRender(){
+  generateTimetable()
+  renderTimetable()
+  pushHistory()
+}
+
+/* ═══════════════════════════════════════════
+   STEP 3 — RENDER
+═══════════════════════════════════════════ */
+function renderTimetable(){
+  buildInfoStrip()
+  buildLegend()
+
+  const container=document.getElementById('daysContainer')
+  container.innerHTML=''
+  if(!CLASSES.length) return
+
+  for(let d=0;d<DAYS;d++){
+    const dayDiv=document.createElement('div')
+    dayDiv.className='day-grid'
+
+    const hdr=document.createElement('div')
+    hdr.className='day-header'
+    hdr.textContent=`DAY ${d+1}`
+    dayDiv.appendChild(hdr)
+
+    const tbl=document.createElement('table')
+    tbl.className='day-table'
+    tbl.dataset.day=d
+
+    const thead=document.createElement('thead')
+    const hrow=document.createElement('tr')
+    const th0=document.createElement('th')
+    th0.textContent='Class'
+    th0.style.minWidth='95px'
+    hrow.appendChild(th0)
+    for(let p=1;p<=PERIODS;p++){
+      const th=document.createElement('th')
+      th.textContent=`P${p}`
+      hrow.appendChild(th)
+    }
+    thead.appendChild(hrow)
+    tbl.appendChild(thead)
+
+    const tbody=document.createElement('tbody')
+    CLASSES.forEach((cls,ci)=>{
+      const row=document.createElement('tr')
+
+      const lbl=document.createElement('td')
+      lbl.className='class-name-cell'
+      lbl.textContent=cls
+      row.appendChild(lbl)
+
+      for(let p=0;p<PERIODS;p++){
+        const slot=d*PERIODS+p
+        const td=document.createElement('td')
+        td.dataset.cls=cls
+        td.dataset.slot=slot
+
+        const si=grid[cls]?.[slot]
+        if(si!=null&&staff[si]){
+          const s=staff[si]
+          const c=s.color||COLORS[si%COLORS.length]
+          const box=document.createElement('div')
+          box.className='staff-box'
+          box.draggable=true
+          box.textContent=s.initials||'?'
+          box.title=`${s.name} — ${cls} / Day ${d+1} / Period ${p+1}`
+          box.style.backgroundColor=c+'2e'
+          box.style.borderColor=c
+          box.style.color=c
+          box.dataset.cls=cls
+          box.dataset.slot=slot
+          box.dataset.staffIdx=si
+          td.appendChild(box)
+        }else{
+          const box=document.createElement('div')
+          box.className='staff-box empty'
+          box.textContent='—'
+          td.appendChild(box)
+        }
+        row.appendChild(td)
+      }
+      tbody.appendChild(row)
+    })
+
+    tbl.appendChild(tbody)
+    dayDiv.appendChild(tbl)
+    container.appendChild(dayDiv)
+  }
+
+  attachDragDrop()
+  buildStaffFilter()
+}
+
+/* ═══════════════════════════════════════════
+   DRAG AND DROP
+═══════════════════════════════════════════ */
+function attachDragDrop(){
+  document.querySelectorAll('.staff-box:not(.empty)').forEach(box=>{
+    box.addEventListener('dragstart',e=>{
+      drag={
+        cls:box.dataset.cls,
+        slot:+box.dataset.slot,
+        staffIdx:+box.dataset.staffIdx
+      }
+      e.dataTransfer.effectAllowed='move'
+      e.dataTransfer.setData('text/plain','1')
+      box.style.opacity='.35'
+    })
+
+    box.addEventListener('dragend',()=>{
+      box.style.opacity=''
+      drag=null
+      clearDropHighlights()
+    })
+  })
+
+  document.querySelectorAll('.day-table td[data-slot]').forEach(td=>{
+    td.addEventListener('dragover',e=>{
+      e.preventDefault()
+      e.dataTransfer.dropEffect='move'
+      td.classList.add('dz-over')
+    })
+
+    td.addEventListener('dragleave',e=>{
+      if(!td.contains(e.relatedTarget)) td.classList.remove('dz-over')
+    })
+
+    td.addEventListener('drop',e=>{
+      e.preventDefault()
+      e.stopPropagation()
+      td.classList.remove('dz-over')
+
+      if(!drag) return
+
+      const srcCls=drag.cls
+      const srcSlot=drag.slot
+      const srcStaff=drag.staffIdx
+
+      const tgtCls=td.dataset.cls
+      const tgtSlot=+td.dataset.slot
+
+      const tgtStaff=grid[tgtCls]?.[tgtSlot]??null
+      grid[srcCls][srcSlot]=tgtStaff
+      grid[tgtCls][tgtSlot]=srcStaff
+
+      drag=null
+      renderTimetable()
+      pushHistory()
+    })
+  })
+}
+
+function clearDropHighlights(){
+  document.querySelectorAll('.dz-over').forEach(el=>el.classList.remove('dz-over'))
+}
+
+/* ═══════════════════════════════════════════
+   INFO & LEGEND
+═══════════════════════════════════════════ */
+function buildInfoStrip(){
+  const strip=document.getElementById('infoStrip')
+  if(!strip) return
+
+  let filled=0,total=0
+  CLASSES.forEach(c=>{
+    grid[c].forEach(v=>{total++;if(v!=null) filled++})
+  })
+  const pct=total?Math.round(filled/total*100):0
+
+  const counts={}
+  staff.forEach((_,i)=>counts[i]=0)
+  CLASSES.forEach(c=>grid[c].forEach(v=>{if(v!=null) counts[v]=(counts[v]||0)+1}))
+  const maxLoad=Math.max(0,...Object.values(counts))
+  const minLoad=staff.length?Math.min(...Object.values(counts)):0
+
+  strip.innerHTML=`
+    <div class="info-card"><div class="ic-val">${filled}</div><div class="ic-lbl">Assigned</div></div>
+    <div class="info-card"><div class="ic-val">${total-filled}</div><div class="ic-lbl">Empty</div></div>
+    <div class="info-card"><div class="ic-val">${pct}%</div><div class="ic-lbl">Fill</div></div>
+    <div class="info-card"><div class="ic-val">${CLASSES.length}</div><div class="ic-lbl">Classes</div></div>
+    <div class="info-card"><div class="ic-val">${staff.length}</div><div class="ic-lbl">Staff</div></div>
+    <div class="info-card"><div class="ic-val">${maxLoad}</div><div class="ic-lbl">Max Load</div></div>
+    <div class="info-card"><div class="ic-val">${minLoad}</div><div class="ic-lbl">Min Load</div></div>
+  `
+}
+
+function buildLegend(){
+  const strip=document.getElementById('legendStrip')
+  if(!strip) return
+  strip.innerHTML='<span class="legend-title">🎨 Staff:</span>'
+  staff.forEach((s,i)=>{
+    const c=s.color||COLORS[i%COLORS.length]
+    const chip=document.createElement('span')
+    chip.className='legend-chip'
+    chip.textContent=`${s.initials} — ${s.name}`
+    chip.style.background=c+'22'
+    chip.style.borderColor=c
+    chip.style.color=c
+    strip.appendChild(chip)
+  })
+}
+
+/* ═══════════════════════════════════════════
+   STAFF FILTER
+═══════════════════════════════════════════ */
+function buildStaffFilter(){
+  const sel=document.getElementById('staffFilter')
+  const cur=sel.value
+  sel.innerHTML='<option value="">All Staff</option>'
+  staff.forEach((s,i)=>{
+    const o=document.createElement('option')
+    o.value=i
+    o.textContent=`${s.name} (${s.initials})`
+    sel.appendChild(o)
+  })
+  if(cur!==''&&staff[+cur]) sel.value=cur
+}
+
+/* ═══════════════════════════════════════════
+   HISTORY
+═══════════════════════════════════════════ */
+function pushHistory(){
+  const snap=JSON.stringify(grid)
+  snapHistory=snapHistory.slice(0,histIdx+1)
+  snapHistory.push(snap)
+  histIdx=snapHistory.length-1
+  if(snapHistory.length>60){snapHistory.shift();histIdx--}
+}
+
+function saveTimetable(){
+  pushHistory()
+  alert('✅ Timetable saved to undo history!')
+}
+
+function undoTimetable(){
+  if(histIdx>0){
+    histIdx--
+    grid=JSON.parse(snapHistory[histIdx])
+    renderTimetable()
+  }else{
+    alert('❌ Nothing more to undo.')
+  }
+}
+
+/* ═══════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════ */
+function goStep(n){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'))
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'))
+  document.getElementById('step'+n).classList.add('active')
+  document.querySelector(`.step[data-step="${n}"]`).classList.add('active')
+  if(n===1) updateSummary()
+  if(n===2) renderStaffTable()
+  if(n===3){generateAndRender();pushHistory()}
+  scrollToTop()
+}
+
+function goHome(){
+  if(!confirm('⚠️ Going Home will erase all timetable data. Continue?')) return
+  staff=[];grid={};CLASSES=[];snapHistory=[];histIdx=-1
+  document.getElementById('staffCount').value=10
+  document.getElementById('hoursPerStaff').value=6
+  clearInstitution()
+  updateSummary()
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'))
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'))
+  document.getElementById('step1').classList.add('active')
+  document.querySelector('.step[data-step="1"]').classList.add('active')
+  document.getElementById('daysContainer').innerHTML=''
+  scrollToTop()
+}
+
+/* ═══════════════════════════════════════════
+   PRINT STAFF
+═══════════════════════════════════════════ */
+function printStaffTimetable(){
+  const si=+document.getElementById('staffFilter').value
+  if(isNaN(si)||!staff[si]) return alert('Please select a valid staff member.')
+  const s=staff[si]
+  const c=s.color||COLORS[si%COLORS.length]
+
+  const slots=[]
+  CLASSES.forEach(cls=>{
+    grid[cls]?.forEach((v,slot)=>{
+      if(v===si){
+        slots.push({cls,day:Math.floor(slot/PERIODS)+1,period:(slot%PERIODS)+1})
+      }
+    })
+  })
+
+  if(!slots.length){alert(`${s.name} has no assigned slots.`);return}
+  slots.sort((a,b)=>a.day-b.day||a.period-b.period)
+
+  const dayLoad={}
+  slots.forEach(({day})=>dayLoad[day]=(dayLoad[day]||0)+1)
+
+  const w=window.open('','_blank')
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${s.name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#f1f5f9;padding:32px}.wrap{max-width:860px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.12);overflow:hidden}.top{background:linear-gradient(135deg,${c},${c}bb);color:#fff;padding:28px 36px}.top h1{font-size:1.6rem;font-weight:800;margin-bottom:4px}.top p{opacity:.85;font-size:.92rem}.cards{display:flex;gap:0;border-bottom:2px solid #f1f5f9}.card{flex:1;padding:18px 24px;border-right:2px solid #f1f5f9;text-align:center}.card:last-child{border-right:none}.card .val{font-size:2rem;font-weight:900;color:${c}}.card .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:#64748b;font-weight:600;margin-top:2px}.body{padding:28px 36px}table{width:100%;border-collapse:collapse}thead tr{background:${c};color:#fff}thead th{padding:12px 16px;text-align:left;font-weight:600;font-size:.88rem}tbody td{padding:12px 16px;border-bottom:1px solid #f1f5f9;font-size:.88rem}tbody tr:hover{background:#f8fafc}.badge{display:inline-block;padding:4px 11px;border-radius:20px;font-weight:700;font-size:.8rem}.cls-badge{background:${c}22;color:${c};border:1.5px solid ${c}44}.day-badge{background:#dbeafe;color:#1e40af}.per-badge{background:#dcfce7;color:#166534}.footer{background:#f8fafc;padding:18px 36px;border-top:2px solid #e2e8f0;text-align:center}.footer p{font-size:.78rem;color:#64748b;margin-top:3px}.footer strong{color:${c}}</style></head><body><div class="wrap"><div class="top"><h1>📋 ${s.name} — Schedule</h1><p>Generated by Timetable Pro</p></div><div class="cards"><div class="card"><div class="val">${s.initials}</div><div class="lbl">Initials</div></div><div class="card"><div class="val">${slots.length}</div><div class="lbl">Periods</div></div><div class="card"><div class="val">${s.hours}</div><div class="lbl">Hours</div></div><div class="card"><div class="val">${Object.keys(dayLoad).length}</div><div class="lbl">Days</div></div></div><div class="body"><table><thead><tr><th>#</th><th>Class</th><th>Day</th><th>Period</th></tr></thead><tbody>${slots.map(({cls,day,period},i)=>`<tr><td><strong>${i+1}</strong></td><td><span class="badge cls-badge">${cls}</span></td><td><span class="badge day-badge">Day ${day}</span></td><td><span class="badge per-badge">Period ${period}</span></td></tr>`).join('')}</tbody></table></div><div class="footer"><p><strong>${s.name}</strong> — Weekly Schedule</p><p>© 2026 <strong>A Mohamed Suhail</strong> • Chennai 600037 • B.Tech CSE (Cyber Security) • VIT Andhra Pradesh</p><p>This timetable is the exclusive intellectual property of A Mohamed Suhail.</p></div></div></body></html>`)
+  w.document.close()
+  w.print()
+}
+
+/* INIT */
+updateSummary()
+renderStaffTable()
+</script>
+</body>
+</html>
