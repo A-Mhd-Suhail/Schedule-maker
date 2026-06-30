@@ -32,7 +32,6 @@ body{
   100%{background-position:0% 50%}
 }
 
-/* AUTH SCREEN */
 .auth-overlay{
   position:fixed;top:0;left:0;width:100%;height:100%;
   background:rgba(0,0,0,.6);backdrop-filter:blur(8px);
@@ -55,8 +54,6 @@ body{
 }
 
 @keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
-
-.auth-container.hidden{display:none}
 
 .auth-logo{
   text-align:center;margin-bottom:35px
@@ -139,11 +136,7 @@ body{
 }
 
 .auth-btn:hover::before{left:100%}
-
-.auth-btn:hover{
-  transform:translateY(-2px);box-shadow:0 12px 30px rgba(99,102,241,.4)
-}
-
+.auth-btn:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(99,102,241,.4)}
 .auth-btn:active{transform:translateY(0)}
 
 .toggle-form{
@@ -176,13 +169,11 @@ body{
 
 .success-msg.show{display:block}
 
-/* MAIN APP */
 .app-wrapper{display:none}
 .app-wrapper.active{display:block}
 
 .container{max-width:1800px;margin:0 auto}
 
-/* USER BADGE */
 .user-badge{
   position:fixed;top:20px;right:20px;
   background:rgba(255,255,255,.95);backdrop-filter:blur(10px);
@@ -218,7 +209,6 @@ body{
   transform:scale(1.05);box-shadow:0 4px 15px rgba(239,68,68,.3)
 }
 
-/* HEADER */
 .header{
   background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,255,255,.85));
   backdrop-filter:blur(10px);
@@ -243,7 +233,6 @@ body{
   letter-spacing:4px;text-transform:uppercase
 }
 
-/* STEPS */
 .steps{
   display:flex;margin-bottom:30px;
   background:rgba(255,255,255,.95);backdrop-filter:blur(10px);
@@ -258,7 +247,6 @@ body{
 }
 
 .step:last-child{border-right:none}
-
 .step:hover{background:rgba(102,126,234,.08)}
 
 .step.active{
@@ -280,7 +268,6 @@ body{
 .step-label{font-weight:600;font-size:.9rem;color:var(--muted)}
 .step.active .step-label{color:var(--primary);font-weight:700}
 
-/* PANELS */
 .panel{
   display:none;
   background:rgba(255,255,255,.95);backdrop-filter:blur(10px);
@@ -340,18 +327,14 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
   color:#fff
 }
 
-.btn-primary:hover{
-  transform:translateY(-2px);box-shadow:0 8px 25px rgba(99,102,241,.3)
-}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(99,102,241,.3)}
 
 .btn-success{
   background:linear-gradient(135deg,var(--success),#059669);
   color:#fff
 }
 
-.btn-success:hover{
-  transform:translateY(-2px);box-shadow:0 8px 25px rgba(16,185,129,.3)
-}
+.btn-success:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(16,185,129,.3)}
 
 .btn-secondary{
   background:rgba(255,255,255,.8);
@@ -368,29 +351,20 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
   color:#fff;padding:10px 20px;font-size:.9rem
 }
 
-.btn-danger:hover{
-  transform:translateY(-2px);box-shadow:0 6px 20px rgba(239,68,68,.3)
-}
+.btn-danger:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(239,68,68,.3)}
 
 .btn-warning{
   background:linear-gradient(135deg,#f59e0b,#d97706);
   color:#fff
 }
 
-.btn-warning:hover{
-  transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,158,11,.3)
-}
+.btn-warning:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,158,11,.3)}
 
 .btn-sm{padding:10px 16px;font-size:.9rem}
 
-.button-group{
-  display:flex;gap:15px;flex-wrap:wrap;align-items:center;margin-bottom:30px
-}
+.button-group{display:flex;gap:15px;flex-wrap:wrap;align-items:center;margin-bottom:30px}
 
-/* STAFF TABLE */
-.staff-table{
-  width:100%;border-collapse:collapse;margin-top:24px
-}
+.staff-table{width:100%;border-collapse:collapse;margin-top:24px}
 
 .staff-table th{
   background:linear-gradient(135deg,var(--primary),#764ba2);
@@ -398,10 +372,7 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
   box-shadow:inset 0 1px 0 rgba(255,255,255,.2)
 }
 
-.staff-table td{
-  padding:12px 14px;border-bottom:1px solid rgba(99,102,241,.1)
-}
-
+.staff-table td{padding:12px 14px;border-bottom:1px solid rgba(99,102,241,.1)}
 .staff-table tr:hover{background:rgba(102,126,234,.05)}
 
 .staff-table input{
@@ -423,7 +394,6 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
   border:2px solid rgba(0,0,0,.1);box-shadow:0 2px 8px rgba(0,0,0,.1)
 }
 
-/* SUMMARY BOX */
 .summary-box{
   background:linear-gradient(135deg,rgba(102,126,234,.1),rgba(240,147,251,.1));
   border:2px solid rgba(102,126,234,.2);
@@ -454,7 +424,6 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
   width:100%;text-align:center;margin-bottom:10px
 }
 
-/* DAYS / TIMETABLE */
 .days-container{
   display:grid;grid-template-columns:repeat(auto-fit,minmax(550px,1fr));
   gap:20px;margin-bottom:30px
@@ -517,10 +486,7 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
   color:var(--muted);cursor:default;font-size:.75rem
 }
 
-.info-strip{
-  display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px;
-  animation:slideUp .6s ease .1s backwards
-}
+.info-strip{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px}
 
 .info-card{
   flex:1;min-width:140px;
@@ -593,7 +559,6 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
 
 .floating-btn.show{display:flex;animation:slideUp .3s ease}
 
-/* FOOTER */
 .footer{
   text-align:center;padding:30px 20px;
   background:linear-gradient(135deg,#1e293b,#0f172a);
@@ -601,30 +566,15 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
   margin-top:20px;box-shadow:0 20px 50px rgba(0,0,0,.2)
 }
 
-.footer .rights-line{
-  color:#ef4444;font-size:.95rem;font-weight:800;
-  letter-spacing:1.5px;margin-bottom:8px
-}
-
-.footer .copyright-line{
-  color:#e2e8f0;font-size:1rem;font-weight:600
-}
-
+.footer .rights-line{color:#ef4444;font-size:.95rem;font-weight:800;letter-spacing:1.5px;margin-bottom:8px}
+.footer .copyright-line{color:#e2e8f0;font-size:1rem;font-weight:600}
 .footer .copyright-symbol{color:var(--primary);font-weight:700}
 .footer .developer-name{color:var(--secondary);font-weight:700}
 .footer .location{color:#94a3b8}
-
-.footer .education-line{
-  color:#94a3b8;font-size:.85rem;margin-top:6px
-}
-
+.footer .education-line{color:#94a3b8;font-size:.85rem;margin-top:6px}
 .footer .education-line .highlight{color:var(--primary);font-weight:500}
+.footer .exclusive-line{color:#e2e8f0;font-size:.85rem;margin-top:8px;font-weight:600}
 
-.footer .exclusive-line{
-  color:#e2e8f0;font-size:.85rem;margin-top:8px;font-weight:600
-}
-
-/* RESPONSIVE */
 @media(max-width:768px){
   .days-container{grid-template-columns:1fr}
   .header h1{font-size:1.8rem}
@@ -658,10 +608,10 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
     </div>
 
     <!-- LOGIN FORM -->
-    <form class="auth-form active" id="loginForm" onsubmit="handleLogin(event)">
+    <form class="auth-form active" id="loginForm" onsubmit="return handleLogin(event)">
       <div class="form-group">
         <label>📧 Email</label>
-        <input type="text" id="loginEmail" placeholder="your@email.com" required>
+        <input type="text" id="loginEmail" placeholder="your@gmail.com" required>
       </div>
       <div class="form-group">
         <label>🔐 Password</label>
@@ -671,14 +621,14 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
     </form>
 
     <!-- SIGNUP FORM -->
-    <form class="auth-form" id="signupForm" onsubmit="handleSignup(event)">
+    <form class="auth-form" id="signupForm" onsubmit="return handleSignup(event)">
       <div class="form-group">
         <label>👤 Full Name</label>
         <input type="text" id="signupName" placeholder="Your full name" required>
       </div>
       <div class="form-group">
         <label>📧 Email</label>
-        <input type="text" id="signupEmail" placeholder="your@email.com" required>
+        <input type="text" id="signupEmail" placeholder="your@gmail.com" required>
       </div>
       <div class="form-group">
         <label>📱 Phone Number</label>
@@ -868,69 +818,75 @@ function clearMessages() {
 
 async function handleSignup(e) {
   e.preventDefault();
+  
   const name = document.getElementById('signupName').value.trim();
   const email = document.getElementById('signupEmail').value.trim();
   const phone = document.getElementById('signupPhone').value.trim();
   const pwd = document.getElementById('signupPassword').value;
   const confirm = document.getElementById('signupConfirm').value;
 
-  if (pwd !== confirm) { showError('❌ Passwords do not match!'); return; }
-  if (pwd.length < 6) { showError('❌ Password must be at least 6 characters!'); return; }
-  if (!email.includes('@')) { showError('❌ Invalid email format!'); return; }
+  // Validations
+  if (!name) { showError('❌ Name is required!'); return false; }
+  if (!email) { showError('❌ Email is required!'); return false; }
+  if (!email.includes('@')) { showError('❌ Please enter a valid email address!'); return false; }
+  if (!phone) { showError('❌ Phone number is required!'); return false; }
+  if (!pwd) { showError('❌ Password is required!'); return false; }
+  if (pwd.length < 6) { showError('❌ Password must be at least 6 characters!'); return false; }
+  if (pwd !== confirm) { showError('❌ Passwords do not match!'); return false; }
 
   try {
-    // Check if user exists
-    const users = await fetchUsers();
-    if (users.some(u => u.email === email)) {
-      showError('❌ Email already registered!');
-      return;
-    }
-
-    // Sign up via API
     const response = await fetch(API_URL, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'signup',
         email: email,
         password: pwd,
         name: name,
         phone: phone
-      }),
-      headers: { 'Content-Type': 'application/json' }
+      })
     });
 
     const data = await response.json();
+    console.log('Signup response:', data);
     
     if (data.success) {
-      showSuccess('✅ Account created! Please login.');
-      setTimeout(() => switchAuthTab('login'), 2000);
+      showSuccess('✅ Account created successfully! Please login.');
       document.getElementById('signupForm').reset();
+      setTimeout(() => switchAuthTab('login'), 2000);
     } else {
-      showError('❌ ' + (data.error || 'Signup failed'));
+      showError('❌ ' + (data.error || 'Signup failed. Please try again.'));
     }
   } catch (err) {
-    console.error(err);
-    showError('❌ Error creating account. Please try again.');
+    console.error('Signup error:', err);
+    showError('❌ Network error. Please check your connection and try again.');
   }
+  
+  return false;
 }
 
 async function handleLogin(e) {
   e.preventDefault();
+  
   const email = document.getElementById('loginEmail').value.trim();
   const pwd = document.getElementById('loginPassword').value;
+
+  if (!email) { showError('❌ Email is required!'); return false; }
+  if (!pwd) { showError('❌ Password is required!'); return false; }
 
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'login',
         email: email,
         password: pwd
-      }),
-      headers: { 'Content-Type': 'application/json' }
+      })
     });
 
     const data = await response.json();
+    console.log('Login response:', data);
 
     if (data.success && data.user) {
       currentUser = {
@@ -939,8 +895,9 @@ async function handleLogin(e) {
         name: data.user.name,
         phone: data.user.phone
       };
+      
       showSuccess('✅ Login successful!');
-
+      
       setTimeout(() => {
         document.getElementById('authOverlay').style.display = 'none';
         document.getElementById('appWrapper').classList.add('active');
@@ -952,9 +909,11 @@ async function handleLogin(e) {
       showError('❌ ' + (data.error || 'Invalid email or password!'));
     }
   } catch (err) {
-    console.error(err);
-    showError('❌ Login failed. Please try again.');
+    console.error('Login error:', err);
+    showError('❌ Network error. Please check your connection and try again.');
   }
+  
+  return false;
 }
 
 function handleLogout() {
@@ -965,20 +924,6 @@ function handleLogout() {
   document.getElementById('loginEmail').value = '';
   document.getElementById('loginPassword').value = '';
   clearMessages();
-}
-
-async function fetchUsers() {
-  try {
-    const response = await fetch(API_URL + '?action=users');
-    const data = await response.json();
-    if (data.success && data.users) {
-      return data.users;
-    }
-    return [];
-  } catch (err) {
-    console.error('Error fetching users:', err);
-    return [];
-  }
 }
 
 function updateUserBadge() {
@@ -1008,9 +953,7 @@ let snapHistory = [];
 let histIdx = -1;
 let drag = null;
 
-/* ═══════════════════════════════════════════
-   UTILITIES
-   ══════════════════════════════════════════ */
+/* UTILITIES */
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 window.addEventListener('scroll', () => {
@@ -1026,9 +969,7 @@ function shuffle(arr) {
   return a;
 }
 
-/* ═══════════════════════════════════════════
-   STEP 1 — SETUP
-   ══════════════════════════════════════════ */
+/* STEP 1 — SETUP */
 function updateSummary() {
   const sc = +document.getElementById('staffCount').value || 1;
   const hp = +document.getElementById('hoursPerStaff').value || 1;
@@ -1063,9 +1004,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-/* ═══════════════════════════════════════════
-   STEP 2 — STAFF TABLE
-   ══════════════════════════════════════════ */
+/* STEP 2 — STAFF TABLE */
 function renderStaffTable() {
   const count = +document.getElementById('staffCount').value || 10;
   const defaultHrs = +document.getElementById('hoursPerStaff').value || 6;
@@ -1096,9 +1035,7 @@ function renderStaffTable() {
   updateSummary();
 }
 
-/* ═══════════════════════════════════════════
-   STEP 3 — GENERATE
-   ══════════════════════════════════════════ */
+/* STEP 3 — GENERATE */
 function generateTimetable() {
   if (!CLASSES.length) {
     CLASSES = ['II M.Sc.', 'I M.Sc.', 'III B.Sc. A', 'III B.Sc. B',
@@ -1135,9 +1072,7 @@ function generateAndRender() {
   pushHistory();
 }
 
-/* ═══════════════════════════════════════════
-   STEP 3 — RENDER
-   ══════════════════════════════════════════ */
+/* STEP 3 — RENDER */
 function renderTimetable() {
   buildInfoStrip();
   buildLegend();
@@ -1176,7 +1111,6 @@ function renderTimetable() {
     const tbody = document.createElement('tbody');
     CLASSES.forEach((cls, ci) => {
       const row = document.createElement('tr');
-
       const lbl = document.createElement('td');
       lbl.className = 'class-name-cell';
       lbl.textContent = cls;
@@ -1224,58 +1158,28 @@ function renderTimetable() {
   buildStaffFilter();
 }
 
-/* ═══════════════════════════════════════════
-   DRAG AND DROP
-   ══════════════════════════════════════════ */
+/* DRAG AND DROP */
 function attachDragDrop() {
   document.querySelectorAll('.staff-box:not(.empty)').forEach(box => {
     box.addEventListener('dragstart', e => {
-      drag = {
-        cls: box.dataset.cls,
-        slot: +box.dataset.slot,
-        staffIdx: +box.dataset.staffIdx
-      };
+      drag = { cls: box.dataset.cls, slot: +box.dataset.slot, staffIdx: +box.dataset.staffIdx };
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', '1');
       box.style.opacity = '.35';
     });
-
-    box.addEventListener('dragend', () => {
-      box.style.opacity = '';
-      drag = null;
-      clearDropHighlights();
-    });
+    box.addEventListener('dragend', () => { box.style.opacity = ''; drag = null; clearDropHighlights(); });
   });
 
   document.querySelectorAll('.day-table td[data-slot]').forEach(td => {
-    td.addEventListener('dragover', e => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      td.classList.add('dz-over');
-    });
-
-    td.addEventListener('dragleave', e => {
-      if (!td.contains(e.relatedTarget)) td.classList.remove('dz-over');
-    });
-
+    td.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; td.classList.add('dz-over'); });
+    td.addEventListener('dragleave', e => { if (!td.contains(e.relatedTarget)) td.classList.remove('dz-over'); });
     td.addEventListener('drop', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      td.classList.remove('dz-over');
-
+      e.preventDefault(); e.stopPropagation(); td.classList.remove('dz-over');
       if (!drag) return;
-
-      const srcCls = drag.cls;
-      const srcSlot = drag.slot;
-      const srcStaff = drag.staffIdx;
-
-      const tgtCls = td.dataset.cls;
-      const tgtSlot = +td.dataset.slot;
-
+      const tgtCls = td.dataset.cls, tgtSlot = +td.dataset.slot;
       const tgtStaff = grid[tgtCls]?.[tgtSlot] ?? null;
-      grid[srcCls][srcSlot] = tgtStaff;
-      grid[tgtCls][tgtSlot] = srcStaff;
-
+      grid[drag.cls][drag.slot] = tgtStaff;
+      grid[tgtCls][tgtSlot] = drag.staffIdx;
       drag = null;
       renderTimetable();
       pushHistory();
@@ -1283,29 +1187,20 @@ function attachDragDrop() {
   });
 }
 
-function clearDropHighlights() {
-  document.querySelectorAll('.dz-over').forEach(el => el.classList.remove('dz-over'));
-}
+function clearDropHighlights() { document.querySelectorAll('.dz-over').forEach(el => el.classList.remove('dz-over')); }
 
-/* ═══════════════════════════════════════════
-   INFO & LEGEND
-   ══════════════════════════════════════════ */
+/* INFO & LEGEND */
 function buildInfoStrip() {
   const strip = document.getElementById('infoStrip');
   if (!strip) return;
-
   let filled = 0, total = 0;
-  CLASSES.forEach(c => {
-    grid[c].forEach(v => { total++; if (v != null) filled++; });
-  });
+  CLASSES.forEach(c => { grid[c].forEach(v => { total++; if (v != null) filled++; }); });
   const pct = total ? Math.round(filled / total * 100) : 0;
-
   const counts = {};
   staff.forEach((_, i) => counts[i] = 0);
   CLASSES.forEach(c => grid[c].forEach(v => { if (v != null) counts[v] = (counts[v] || 0) + 1; }));
   const maxLoad = Math.max(0, ...Object.values(counts));
   const minLoad = staff.length ? Math.min(...Object.values(counts)) : 0;
-
   strip.innerHTML = `
     <div class="info-card"><div class="ic-val">${filled}</div><div class="ic-lbl">Assigned</div></div>
     <div class="info-card"><div class="ic-val">${total - filled}</div><div class="ic-lbl">Empty</div></div>
@@ -1313,8 +1208,7 @@ function buildInfoStrip() {
     <div class="info-card"><div class="ic-val">${CLASSES.length}</div><div class="ic-lbl">Classes</div></div>
     <div class="info-card"><div class="ic-val">${staff.length}</div><div class="ic-lbl">Staff</div></div>
     <div class="info-card"><div class="ic-val">${maxLoad}</div><div class="ic-lbl">Max Load</div></div>
-    <div class="info-card"><div class="ic-val">${minLoad}</div><div class="ic-lbl">Min Load</div></div>
-  `;
+    <div class="info-card"><div class="ic-val">${minLoad}</div><div class="ic-lbl">Min Load</div></div>`;
 }
 
 function buildLegend() {
@@ -1333,9 +1227,7 @@ function buildLegend() {
   });
 }
 
-/* ═══════════════════════════════════════════
-   STAFF FILTER
-   ══════════════════════════════════════════ */
+/* STAFF FILTER */
 function buildStaffFilter() {
   const sel = document.getElementById('staffFilter');
   const cur = sel.value;
@@ -1349,9 +1241,7 @@ function buildStaffFilter() {
   if (cur !== '' && staff[+cur]) sel.value = cur;
 }
 
-/* ═══════════════════════════════════════════
-   HISTORY
-   ══════════════════════════════════════════ */
+/* HISTORY */
 function pushHistory() {
   const snap = JSON.stringify(grid);
   snapHistory = snapHistory.slice(0, histIdx + 1);
@@ -1360,24 +1250,13 @@ function pushHistory() {
   if (snapHistory.length > 60) { snapHistory.shift(); histIdx--; }
 }
 
-function saveTimetable() {
-  pushHistory();
-  alert('✅ Timetable saved to undo history!');
-}
-
+function saveTimetable() { pushHistory(); alert('✅ Timetable saved!'); }
 function undoTimetable() {
-  if (histIdx > 0) {
-    histIdx--;
-    grid = JSON.parse(snapHistory[histIdx]);
-    renderTimetable();
-  } else {
-    alert('❌ Nothing more to undo.');
-  }
+  if (histIdx > 0) { histIdx--; grid = JSON.parse(snapHistory[histIdx]); renderTimetable(); }
+  else { alert('❌ Nothing to undo.'); }
 }
 
-/* ═══════════════════════════════════════════
-   NAVIGATION
-   ══════════════════════════════════════════ */
+/* NAVIGATION */
 function goStep(n) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -1390,7 +1269,7 @@ function goStep(n) {
 }
 
 function goHome() {
-  if (!confirm('⚠️ Going Home will erase all timetable data. Continue?')) return;
+  if (!confirm('⚠️ Going Home will erase all data. Continue?')) return;
   staff = []; grid = {}; CLASSES = []; snapHistory = []; histIdx = -1;
   document.getElementById('staffCount').value = 10;
   document.getElementById('hoursPerStaff').value = 6;
@@ -1404,32 +1283,24 @@ function goHome() {
   scrollToTop();
 }
 
-/* ═══════════════════════════════════════════
-   PRINT STAFF
-   ══════════════════════════════════════════ */
+/* PRINT STAFF */
 function printStaffTimetable() {
   const si = +document.getElementById('staffFilter').value;
-  if (isNaN(si) || !staff[si]) return alert('Please select a valid staff member.');
+  if (isNaN(si) || !staff[si]) return alert('Please select a staff member.');
   const s = staff[si];
   const c = s.color || COLORS[si % COLORS.length];
-
   const slots = [];
   CLASSES.forEach(cls => {
     grid[cls]?.forEach((v, slot) => {
-      if (v === si) {
-        slots.push({ cls, day: Math.floor(slot / PERIODS) + 1, period: (slot % PERIODS) + 1 });
-      }
+      if (v === si) slots.push({ cls, day: Math.floor(slot / PERIODS) + 1, period: (slot % PERIODS) + 1 });
     });
   });
-
   if (!slots.length) { alert(`${s.name} has no assigned slots.`); return; }
   slots.sort((a, b) => a.day - b.day || a.period - b.period);
-
   const dayLoad = {};
   slots.forEach(({ day }) => dayLoad[day] = (dayLoad[day] || 0) + 1);
-
   const w = window.open('', '_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${s.name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#f1f5f9;padding:32px}.wrap{max-width:860px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.12);overflow:hidden}.top{background:linear-gradient(135deg,${c},${c}bb);color:#fff;padding:28px 36px}.top h1{font-size:1.6rem;font-weight:800;margin-bottom:4px}.top p{opacity:.85;font-size:.92rem}.cards{display:flex;gap:0;border-bottom:2px solid #f1f5f9}.card{flex:1;padding:18px 24px;border-right:2px solid #f1f5f9;text-align:center}.card:last-child{border-right:none}.card .val{font-size:2rem;font-weight:900;color:${c}}.card .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:#64748b;font-weight:600;margin-top:2px}.body{padding:28px 36px}table{width:100%;border-collapse:collapse}thead tr{background:${c};color:#fff}thead th{padding:12px 16px;text-align:left;font-weight:600;font-size:.88rem}tbody td{padding:12px 16px;border-bottom:1px solid #f1f5f9;font-size:.88rem}tbody tr:hover{background:#f8fafc}.badge{display:inline-block;padding:4px 11px;border-radius:20px;font-weight:700;font-size:.8rem}.cls-badge{background:${c}22;color:${c};border:1.5px solid ${c}44}.day-badge{background:#dbeafe;color:#1e40af}.per-badge{background:#dcfce7;color:#166534}.footer{background:#f8fafc;padding:18px 36px;border-top:2px solid #e2e8f0;text-align:center}.footer p{font-size:.78rem;color:#64748b;margin-top:3px}.footer strong{color:${c}}</style></head><body><div class="wrap"><div class="top"><h1>📋 ${s.name} — Schedule</h1><p>Generated by Timetable Pro</p></div><div class="cards"><div class="card"><div class="val">${s.initials}</div><div class="lbl">Initials</div></div><div class="card"><div class="val">${slots.length}</div><div class="lbl">Periods</div></div><div class="card"><div class="val">${s.hours}</div><div class="lbl">Hours</div></div><div class="card"><div class="val">${Object.keys(dayLoad).length}</div><div class="lbl">Days</div></div></div><div class="body"><table><thead><tr><th>#</th><th>Class</th><th>Day</th><th>Period</th></tr></thead><tbody>${slots.map(({cls, day, period}, i) => `<tr><td><strong>${i+1}</strong></td><td><span class="badge cls-badge">${cls}</span></td><td><span class="badge day-badge">Day ${day}</span></td><td><span class="badge per-badge">Period ${period}</span></td></tr>`).join('')}</tbody></table></div><div class="footer"><p><strong>${s.name}</strong> — Weekly Schedule</p><p>© 2026 <strong>A Mohamed Suhail</strong> • Chennai 600037 • B.Tech CSE (Cyber Security) • VIT Andhra Pradesh</p><p>This timetable is the exclusive intellectual property of A Mohamed Suhail.</p></div></div></body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${s.name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#f1f5f9;padding:32px}.wrap{max-width:860px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.12);overflow:hidden}.top{background:linear-gradient(135deg,${c},${c}bb);color:#fff;padding:28px 36px}.top h1{font-size:1.6rem;font-weight:800}.top p{opacity:.85;font-size:.92rem}.cards{display:flex;border-bottom:2px solid #f1f5f9}.card{flex:1;padding:18px 24px;border-right:2px solid #f1f5f9;text-align:center}.card:last-child{border-right:none}.card .val{font-size:2rem;font-weight:900;color:${c}}.card .lbl{font-size:.72rem;text-transform:uppercase;color:#64748b;font-weight:600}.body{padding:28px 36px}table{width:100%;border-collapse:collapse}thead tr{background:${c};color:#fff}thead th{padding:12px 16px;text-align:left;font-weight:600}tbody td{padding:12px 16px;border-bottom:1px solid #f1f5f9}tbody tr:hover{background:#f8fafc}.badge{display:inline-block;padding:4px 11px;border-radius:20px;font-weight:700;font-size:.8rem}.cls-badge{background:${c}22;color:${c};border:1.5px solid ${c}44}.footer{background:#f8fafc;padding:18px 36px;border-top:2px solid #e2e8f0;text-align:center;font-size:.78rem;color:#64748b}</style></head><body><div class="wrap"><div class="top"><h1>📋 ${s.name} — Schedule</h1><p>Generated by Timetable Pro</p></div><div class="cards"><div class="card"><div class="val">${s.initials}</div><div class="lbl">Initials</div></div><div class="card"><div class="val">${slots.length}</div><div class="lbl">Periods</div></div><div class="card"><div class="val">${s.hours}</div><div class="lbl">Hours</div></div><div class="card"><div class="val">${Object.keys(dayLoad).length}</div><div class="lbl">Days</div></div></div><div class="body"><table><thead><tr><th>#</th><th>Class</th><th>Day</th><th>Period</th></tr></thead><tbody>${slots.map(({cls, day, period}, i) => `<tr><td><strong>${i+1}</strong></td><td><span class="badge cls-badge">${cls}</span></td><td>Day ${day}</td><td>Period ${period}</td></tr>`).join('')}</tbody></table></div><div class="footer">© 2026 A Mohamed Suhail • Chennai 600037</div></div></body></html>`);
   w.document.close();
   w.print();
 }
