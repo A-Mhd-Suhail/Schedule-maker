@@ -30,9 +30,9 @@ function signup_(payload) {
   const name = String(payload.name || '').trim();
   const phone = String(payload.phone || '').trim();
 
-  if (!email || !email.includes('@')) return { success: false, error: 'Valid email required' };
-  if (password.length < 6) return { success: false, error: 'Password must be at least 6 characters.' };
   if (!name) return { success: false, error: 'Name is required.' };
+  if (!email || !email.includes('@')) return { success: false, error: 'Valid email is required.' };
+  if (password.length < 6) return { success: false, error: 'Password must be at least 6 characters.' };
   if (!phone) return { success: false, error: 'Phone number is required.' };
 
   const sheet = getSheet_();
