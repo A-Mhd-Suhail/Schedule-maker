@@ -776,14 +776,94 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
 
 <script>
 /* ═══════════════════════════════════════════
-   YOUR GOOGLE APPS SCRIPT API URL
+   CONFIGURATION – UPDATE THIS URL
    ══════════════════════════════════════════ */
-const API_URL = 'https://script.google.com/macros/s/AKfycbzsaWpbX6-iqDwe5w3_rnmZXwOuMAo6ncK1JjRdHhWJpug6f1zzimKFbFMRMQ8Mvgl9/exec?action=users';
+const API_URL = 'YOUR_DEPLOYMENT_URL_HERE';  // ← Replace with your Google Apps Script URL
 
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 let currentUser = null;
+let sessionTimeout = null;
 
 /* ═══════════════════════════════════════════
-   AUTH FUNCTIONS
+   SECURITY: INPUT VALIDATION & SANITIZATION
+   ══════════════════════════════════════════ */
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isValidPhone(phone) {
+  const digits = phone.replace(/\D/g, '');
+  return /^[\d\s\-\+\(\)]+$/.test(phone) && digits.length >= 7;
+}
+
+function validatePassword(password) {
+  const errors = [];
+  if (password.length < 8) errors.push('at least 8 characters');
+  if (!/[A-Z]/.test(password)) errors.push('uppercase letter');
+  if (!/[a-z]/.test(password)) errors.push('lowercase letter');
+  if (!/[0-9]/.test(password)) errors.push('number');
+  if (!/[^A-Za-z0-9]/.test(password)) errors.push('special character');
+  return { valid: errors.length === 0, errors };
+}
+
+function sanitizeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function sanitizeInput(str) {
+  return String(str).trim().substring(0, 255).replace(/[<>]/g, '');
+}
+
+/* ═══════════════════════════════════════════
+   SESSION MANAGEMENT
+   ══════════════════════════════════════════ */
+function generateSessionToken(userId) {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 15);
+  return btoa(`${userId}:${timestamp}:${random}`);
+}
+
+function storeSession(user) {
+  try {
+    const token = generateSessionToken(user.id);
+    sessionStorage.setItem('session_token', token);
+    sessionStorage.setItem('user_data', JSON.stringify(user));
+    resetSessionTimeout();
+  } catch (_) {}
+}
+
+function restoreSession() {
+  try {
+    const userData = sessionStorage.getItem('user_data');
+    if (userData) return JSON.parse(userData);
+  } catch (_) { clearSession(); }
+  return null;
+}
+
+function clearSession() {
+  sessionStorage.removeItem('session_token');
+  sessionStorage.removeItem('user_data');
+  if (sessionTimeout) clearTimeout(sessionTimeout);
+}
+
+function resetSessionTimeout() {
+  if (sessionTimeout) clearTimeout(sessionTimeout);
+  sessionTimeout = setTimeout(() => {
+    if (currentUser) {
+      alert('⏰ Your session has expired. Please login again.');
+      handleLogout();
+    }
+  }, SESSION_TIMEOUT);
+}
+
+function resetSessionOnActivity() {
+  if (currentUser) resetSessionTimeout();
+}
+
+/* ═══════════════════════════════════════════
+   AUTH: SWITCH TABS
    ══════════════════════════════════════════ */
 function switchAuthTab(tab) {
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -816,22 +896,28 @@ function clearMessages() {
   document.getElementById('successMsg').classList.remove('show');
 }
 
+/* ═══════════════════════════════════════════
+   AUTH: SIGNUP
+   ══════════════════════════════════════════ */
 async function handleSignup(e) {
   e.preventDefault();
-  
+
   const name = document.getElementById('signupName').value.trim();
   const email = document.getElementById('signupEmail').value.trim();
   const phone = document.getElementById('signupPhone').value.trim();
   const pwd = document.getElementById('signupPassword').value;
   const confirm = document.getElementById('signupConfirm').value;
 
-  // Validations
-  if (!name) { showError('❌ Name is required!'); return false; }
-  if (!email) { showError('❌ Email is required!'); return false; }
-  if (!email.includes('@')) { showError('❌ Please enter a valid email address!'); return false; }
-  if (!phone) { showError('❌ Phone number is required!'); return false; }
-  if (!pwd) { showError('❌ Password is required!'); return false; }
-  if (pwd.length < 6) { showError('❌ Password must be at least 6 characters!'); return false; }
+  // Client-side validations
+  if (!name || name.length < 2) { showError('❌ Name must be at least 2 characters!'); return false; }
+  if (!isValidEmail(email)) { showError('❌ Please enter a valid email address!'); return false; }
+  if (!isValidPhone(phone)) { showError('❌ Phone number format is invalid!'); return false; }
+
+  const pwdVal = validatePassword(pwd);
+  if (!pwdVal.valid) {
+    showError('❌ Password must contain: ' + pwdVal.errors.join(', '));
+    return false;
+  }
   if (pwd !== confirm) { showError('❌ Passwords do not match!'); return false; }
 
   try {
@@ -840,16 +926,14 @@ async function handleSignup(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'signup',
-        email: email,
+        email: sanitizeInput(email),
         password: pwd,
-        name: name,
-        phone: phone
+        name: sanitizeInput(name),
+        phone: sanitizeInput(phone)
       })
     });
 
     const data = await response.json();
-    console.log('Signup response:', data);
-    
     if (data.success) {
       showSuccess('✅ Account created successfully! Please login.');
       document.getElementById('signupForm').reset();
@@ -861,13 +945,15 @@ async function handleSignup(e) {
     console.error('Signup error:', err);
     showError('❌ Network error. Please check your connection and try again.');
   }
-  
   return false;
 }
 
+/* ═══════════════════════════════════════════
+   AUTH: LOGIN
+   ══════════════════════════════════════════ */
 async function handleLogin(e) {
   e.preventDefault();
-  
+
   const email = document.getElementById('loginEmail').value.trim();
   const pwd = document.getElementById('loginPassword').value;
 
@@ -880,30 +966,23 @@ async function handleLogin(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'login',
-        email: email,
+        email: sanitizeInput(email),
         password: pwd
       })
     });
 
     const data = await response.json();
-    console.log('Login response:', data);
-
     if (data.success && data.user) {
-      currentUser = {
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.name,
-        phone: data.user.phone
-      };
-      
+      currentUser = data.user;
+      storeSession(currentUser);
       showSuccess('✅ Login successful!');
-      
       setTimeout(() => {
         document.getElementById('authOverlay').style.display = 'none';
         document.getElementById('appWrapper').classList.add('active');
         updateUserBadge();
         document.getElementById('loginForm').reset();
         clearMessages();
+        resetSessionOnActivity();
       }, 1500);
     } else {
       showError('❌ ' + (data.error || 'Invalid email or password!'));
@@ -912,13 +991,16 @@ async function handleLogin(e) {
     console.error('Login error:', err);
     showError('❌ Network error. Please check your connection and try again.');
   }
-  
   return false;
 }
 
+/* ═══════════════════════════════════════════
+   AUTH: LOGOUT
+   ══════════════════════════════════════════ */
 function handleLogout() {
-  if (!confirm('Are you sure you want to logout?')) return;
+  if (currentUser && !confirm('Are you sure you want to logout?')) return;
   currentUser = null;
+  clearSession();
   document.getElementById('appWrapper').classList.remove('active');
   document.getElementById('authOverlay').style.display = 'flex';
   document.getElementById('loginEmail').value = '';
@@ -953,7 +1035,9 @@ let snapHistory = [];
 let histIdx = -1;
 let drag = null;
 
-/* UTILITIES */
+/* ═══════════════════════════════════════════
+   UTILITIES
+   ══════════════════════════════════════════ */
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 window.addEventListener('scroll', () => {
@@ -969,7 +1053,9 @@ function shuffle(arr) {
   return a;
 }
 
-/* STEP 1 — SETUP */
+/* ═══════════════════════════════════════════
+   STEP 1 — SETUP
+   ══════════════════════════════════════════ */
 function updateSummary() {
   const sc = +document.getElementById('staffCount').value || 1;
   const hp = +document.getElementById('hoursPerStaff').value || 1;
@@ -986,6 +1072,16 @@ function clearInstitution() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Restore session
+  const savedUser = restoreSession();
+  if (savedUser) {
+    currentUser = savedUser;
+    document.getElementById('authOverlay').style.display = 'none';
+    document.getElementById('appWrapper').classList.add('active');
+    updateUserBadge();
+    resetSessionTimeout();
+  }
+
   const dropdown = document.getElementById('institutionDropdown');
   if (dropdown) {
     dropdown.addEventListener('change', function() {
@@ -1002,16 +1098,28 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('institutionDropdown').value = '';
     });
   }
+
+  // Reset session timeout on user activity
+  document.addEventListener('mousemove', resetSessionOnActivity);
+  document.addEventListener('keypress', resetSessionOnActivity);
+  document.addEventListener('click', resetSessionOnActivity);
 });
 
-/* STEP 2 — STAFF TABLE */
+/* ═══════════════════════════════════════════
+   STEP 2 — STAFF TABLE
+   ══════════════════════════════════════════ */
 function renderStaffTable() {
   const count = +document.getElementById('staffCount').value || 10;
   const defaultHrs = +document.getElementById('hoursPerStaff').value || 6;
 
   while (staff.length < count) {
     const i = staff.length;
-    staff.push({ name: `Staff ${i + 1}`, hours: defaultHrs, initials: `S${i + 1}`, color: COLORS[i % COLORS.length] });
+    staff.push({
+      name: `Staff ${i + 1}`,
+      hours: defaultHrs,
+      initials: `S${i + 1}`,
+      color: COLORS[i % COLORS.length]
+    });
   }
   if (staff.length > count) staff = staff.slice(0, count);
 
@@ -1020,9 +1128,9 @@ function renderStaffTable() {
   staff.forEach((s, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input type="text" value="${s.name}" onchange="staff[${idx}].name=this.value"></td>
+      <td><input type="text" value="${sanitizeHtml(s.name)}" onchange="staff[${idx}].name=sanitizeInput(this.value)"></td>
       <td><input type="number" value="${s.hours}" min="1" max="30" onchange="staff[${idx}].hours=+this.value||1"></td>
-      <td><input type="text" value="${s.initials}" maxlength="5" style="text-transform:uppercase" onchange="staff[${idx}].initials=this.value.toUpperCase()"></td>
+      <td><input type="text" value="${sanitizeHtml(s.initials)}" maxlength="5" style="text-transform:uppercase" onchange="staff[${idx}].initials=this.value.toUpperCase()"></td>
       <td>
         <div class="color-cell">
           <input type="color" value="${s.color}" onchange="staff[${idx}].color=this.value;document.getElementById('cp${idx}').style.background=this.value">
@@ -1035,10 +1143,13 @@ function renderStaffTable() {
   updateSummary();
 }
 
-/* STEP 3 — GENERATE */
+/* ═══════════════════════════════════════════
+   STEP 3 — GENERATE
+   ══════════════════════════════════════════ */
 function generateTimetable() {
   if (!CLASSES.length) {
-    CLASSES = ['II M.Sc.', 'I M.Sc.', 'III B.Sc. A', 'III B.Sc. B',
+    CLASSES = [
+      'II M.Sc.', 'I M.Sc.', 'III B.Sc. A', 'III B.Sc. B',
       'II B.Sc. A', 'II B.Sc. B', 'I B.Sc. A', 'I B.Sc. B',
       'Physics 1', 'Physics 2', 'Plant Bio', 'Zoology'
     ];
@@ -1072,7 +1183,9 @@ function generateAndRender() {
   pushHistory();
 }
 
-/* STEP 3 — RENDER */
+/* ═══════════════════════════════════════════
+   STEP 3 — RENDER
+   ══════════════════════════════════════════ */
 function renderTimetable() {
   buildInfoStrip();
   buildLegend();
@@ -1111,6 +1224,7 @@ function renderTimetable() {
     const tbody = document.createElement('tbody');
     CLASSES.forEach((cls, ci) => {
       const row = document.createElement('tr');
+
       const lbl = document.createElement('td');
       lbl.className = 'class-name-cell';
       lbl.textContent = cls;
@@ -1158,7 +1272,9 @@ function renderTimetable() {
   buildStaffFilter();
 }
 
-/* DRAG AND DROP */
+/* ═══════════════════════════════════════════
+   DRAG AND DROP
+   ══════════════════════════════════════════ */
 function attachDragDrop() {
   document.querySelectorAll('.staff-box:not(.empty)').forEach(box => {
     box.addEventListener('dragstart', e => {
@@ -1167,40 +1283,65 @@ function attachDragDrop() {
       e.dataTransfer.setData('text/plain', '1');
       box.style.opacity = '.35';
     });
-    box.addEventListener('dragend', () => { box.style.opacity = ''; drag = null; clearDropHighlights(); });
+
+    box.addEventListener('dragend', () => {
+      box.style.opacity = '';
+      drag = null;
+      clearDropHighlights();
+    });
   });
 
   document.querySelectorAll('.day-table td[data-slot]').forEach(td => {
-    td.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; td.classList.add('dz-over'); });
-    td.addEventListener('dragleave', e => { if (!td.contains(e.relatedTarget)) td.classList.remove('dz-over'); });
+    td.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      td.classList.add('dz-over');
+    });
+
+    td.addEventListener('dragleave', e => {
+      if (!td.contains(e.relatedTarget)) td.classList.remove('dz-over');
+    });
+
     td.addEventListener('drop', e => {
-      e.preventDefault(); e.stopPropagation(); td.classList.remove('dz-over');
+      e.preventDefault();
+      e.stopPropagation();
+      td.classList.remove('dz-over');
       if (!drag) return;
+
+      const srcCls = drag.cls, srcSlot = drag.slot, srcStaff = drag.staffIdx;
       const tgtCls = td.dataset.cls, tgtSlot = +td.dataset.slot;
       const tgtStaff = grid[tgtCls]?.[tgtSlot] ?? null;
-      grid[drag.cls][drag.slot] = tgtStaff;
-      grid[tgtCls][tgtSlot] = drag.staffIdx;
+      grid[srcCls][srcSlot] = tgtStaff;
+      grid[tgtCls][tgtSlot] = srcStaff;
       drag = null;
       renderTimetable();
       pushHistory();
+      resetSessionOnActivity();
     });
   });
 }
 
-function clearDropHighlights() { document.querySelectorAll('.dz-over').forEach(el => el.classList.remove('dz-over')); }
+function clearDropHighlights() {
+  document.querySelectorAll('.dz-over').forEach(el => el.classList.remove('dz-over'));
+}
 
-/* INFO & LEGEND */
+/* ═══════════════════════════════════════════
+   INFO & LEGEND
+   ══════════════════════════════════════════ */
 function buildInfoStrip() {
   const strip = document.getElementById('infoStrip');
   if (!strip) return;
+
   let filled = 0, total = 0;
   CLASSES.forEach(c => { grid[c].forEach(v => { total++; if (v != null) filled++; }); });
   const pct = total ? Math.round(filled / total * 100) : 0;
+
   const counts = {};
   staff.forEach((_, i) => counts[i] = 0);
   CLASSES.forEach(c => grid[c].forEach(v => { if (v != null) counts[v] = (counts[v] || 0) + 1; }));
   const maxLoad = Math.max(0, ...Object.values(counts));
   const minLoad = staff.length ? Math.min(...Object.values(counts)) : 0;
+
   strip.innerHTML = `
     <div class="info-card"><div class="ic-val">${filled}</div><div class="ic-lbl">Assigned</div></div>
     <div class="info-card"><div class="ic-val">${total - filled}</div><div class="ic-lbl">Empty</div></div>
@@ -1208,7 +1349,8 @@ function buildInfoStrip() {
     <div class="info-card"><div class="ic-val">${CLASSES.length}</div><div class="ic-lbl">Classes</div></div>
     <div class="info-card"><div class="ic-val">${staff.length}</div><div class="ic-lbl">Staff</div></div>
     <div class="info-card"><div class="ic-val">${maxLoad}</div><div class="ic-lbl">Max Load</div></div>
-    <div class="info-card"><div class="ic-val">${minLoad}</div><div class="ic-lbl">Min Load</div></div>`;
+    <div class="info-card"><div class="ic-val">${minLoad}</div><div class="ic-lbl">Min Load</div></div>
+  `;
 }
 
 function buildLegend() {
@@ -1227,7 +1369,9 @@ function buildLegend() {
   });
 }
 
-/* STAFF FILTER */
+/* ═══════════════════════════════════════════
+   STAFF FILTER
+   ══════════════════════════════════════════ */
 function buildStaffFilter() {
   const sel = document.getElementById('staffFilter');
   const cur = sel.value;
@@ -1241,7 +1385,9 @@ function buildStaffFilter() {
   if (cur !== '' && staff[+cur]) sel.value = cur;
 }
 
-/* HISTORY */
+/* ═══════════════════════════════════════════
+   HISTORY
+   ══════════════════════════════════════════ */
 function pushHistory() {
   const snap = JSON.stringify(grid);
   snapHistory = snapHistory.slice(0, histIdx + 1);
@@ -1250,13 +1396,21 @@ function pushHistory() {
   if (snapHistory.length > 60) { snapHistory.shift(); histIdx--; }
 }
 
-function saveTimetable() { pushHistory(); alert('✅ Timetable saved!'); }
+function saveTimetable() { pushHistory(); alert('✅ Timetable saved to undo history!'); }
+
 function undoTimetable() {
-  if (histIdx > 0) { histIdx--; grid = JSON.parse(snapHistory[histIdx]); renderTimetable(); }
-  else { alert('❌ Nothing to undo.'); }
+  if (histIdx > 0) {
+    histIdx--;
+    grid = JSON.parse(snapHistory[histIdx]);
+    renderTimetable();
+  } else {
+    alert('❌ Nothing more to undo.');
+  }
 }
 
-/* NAVIGATION */
+/* ═══════════════════════════════════════════
+   NAVIGATION
+   ══════════════════════════════════════════ */
 function goStep(n) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -1269,7 +1423,7 @@ function goStep(n) {
 }
 
 function goHome() {
-  if (!confirm('⚠️ Going Home will erase all data. Continue?')) return;
+  if (!confirm('⚠️ Going Home will erase all timetable data. Continue?')) return;
   staff = []; grid = {}; CLASSES = []; snapHistory = []; histIdx = -1;
   document.getElementById('staffCount').value = 10;
   document.getElementById('hoursPerStaff').value = 6;
@@ -1283,29 +1437,37 @@ function goHome() {
   scrollToTop();
 }
 
-/* PRINT STAFF */
+/* ═══════════════════════════════════════════
+   PRINT STAFF
+   ══════════════════════════════════════════ */
 function printStaffTimetable() {
   const si = +document.getElementById('staffFilter').value;
-  if (isNaN(si) || !staff[si]) return alert('Please select a staff member.');
+  if (isNaN(si) || !staff[si]) return alert('Please select a valid staff member.');
   const s = staff[si];
   const c = s.color || COLORS[si % COLORS.length];
+
   const slots = [];
   CLASSES.forEach(cls => {
     grid[cls]?.forEach((v, slot) => {
       if (v === si) slots.push({ cls, day: Math.floor(slot / PERIODS) + 1, period: (slot % PERIODS) + 1 });
     });
   });
+
   if (!slots.length) { alert(`${s.name} has no assigned slots.`); return; }
   slots.sort((a, b) => a.day - b.day || a.period - b.period);
+
   const dayLoad = {};
   slots.forEach(({ day }) => dayLoad[day] = (dayLoad[day] || 0) + 1);
+
   const w = window.open('', '_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${s.name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#f1f5f9;padding:32px}.wrap{max-width:860px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.12);overflow:hidden}.top{background:linear-gradient(135deg,${c},${c}bb);color:#fff;padding:28px 36px}.top h1{font-size:1.6rem;font-weight:800}.top p{opacity:.85;font-size:.92rem}.cards{display:flex;border-bottom:2px solid #f1f5f9}.card{flex:1;padding:18px 24px;border-right:2px solid #f1f5f9;text-align:center}.card:last-child{border-right:none}.card .val{font-size:2rem;font-weight:900;color:${c}}.card .lbl{font-size:.72rem;text-transform:uppercase;color:#64748b;font-weight:600}.body{padding:28px 36px}table{width:100%;border-collapse:collapse}thead tr{background:${c};color:#fff}thead th{padding:12px 16px;text-align:left;font-weight:600}tbody td{padding:12px 16px;border-bottom:1px solid #f1f5f9}tbody tr:hover{background:#f8fafc}.badge{display:inline-block;padding:4px 11px;border-radius:20px;font-weight:700;font-size:.8rem}.cls-badge{background:${c}22;color:${c};border:1.5px solid ${c}44}.footer{background:#f8fafc;padding:18px 36px;border-top:2px solid #e2e8f0;text-align:center;font-size:.78rem;color:#64748b}</style></head><body><div class="wrap"><div class="top"><h1>📋 ${s.name} — Schedule</h1><p>Generated by Timetable Pro</p></div><div class="cards"><div class="card"><div class="val">${s.initials}</div><div class="lbl">Initials</div></div><div class="card"><div class="val">${slots.length}</div><div class="lbl">Periods</div></div><div class="card"><div class="val">${s.hours}</div><div class="lbl">Hours</div></div><div class="card"><div class="val">${Object.keys(dayLoad).length}</div><div class="lbl">Days</div></div></div><div class="body"><table><thead><tr><th>#</th><th>Class</th><th>Day</th><th>Period</th></tr></thead><tbody>${slots.map(({cls, day, period}, i) => `<tr><td><strong>${i+1}</strong></td><td><span class="badge cls-badge">${cls}</span></td><td>Day ${day}</td><td>Period ${period}</td></tr>`).join('')}</tbody></table></div><div class="footer">© 2026 A Mohamed Suhail • Chennai 600037</div></div></body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${s.name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#f1f5f9;padding:32px}.wrap{max-width:860px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.12);overflow:hidden}.top{background:linear-gradient(135deg,${c},${c}bb);color:#fff;padding:28px 36px}.top h1{font-size:1.6rem;font-weight:800;margin-bottom:4px}.top p{opacity:.85;font-size:.92rem}.cards{display:flex;gap:0;border-bottom:2px solid #f1f5f9}.card{flex:1;padding:18px 24px;border-right:2px solid #f1f5f9;text-align:center}.card:last-child{border-right:none}.card .val{font-size:2rem;font-weight:900;color:${c}}.card .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:#64748b;font-weight:600;margin-top:2px}.body{padding:28px 36px}table{width:100%;border-collapse:collapse}thead tr{background:${c};color:#fff}thead th{padding:12px 16px;text-align:left;font-weight:600;font-size:.88rem}tbody td{padding:12px 16px;border-bottom:1px solid #f1f5f9;font-size:.88rem}tbody tr:hover{background:#f8fafc}.badge{display:inline-block;padding:4px 11px;border-radius:20px;font-weight:700;font-size:.8rem}.cls-badge{background:${c}22;color:${c};border:1.5px solid ${c}44}.footer{background:#f8fafc;padding:18px 36px;border-top:2px solid #e2e8f0;text-align:center}.footer p{font-size:.78rem;color:#64748b;margin-top:3px}.footer strong{color:${c}}</style></head><body><div class="wrap"><div class="top"><h1>📋 ${s.name} — Schedule</h1><p>Generated by Timetable Pro</p></div><div class="cards"><div class="card"><div class="val">${s.initials}</div><div class="lbl">Initials</div></div><div class="card"><div class="val">${slots.length}</div><div class="lbl">Periods</div></div><div class="card"><div class="val">${s.hours}</div><div class="lbl">Hours</div></div><div class="card"><div class="val">${Object.keys(dayLoad).length}</div><div class="lbl">Days</div></div></div><div class="body"><table><thead><tr><th>#</th><th>Class</th><th>Day</th><th>Period</th></tr></thead><tbody>${slots.map(({cls, day, period}, i) => `<tr><td><strong>${i+1}</strong></td><td><span class="badge cls-badge">${cls}</span></td><td>Day ${day}</td><td>Period ${period}</td></tr>`).join('')}</tbody></table></div><div class="footer"><p><strong>${s.name}</strong> — Weekly Schedule</p><p>© 2026 <strong>A Mohamed Suhail</strong> • Chennai 600037</p><p>This timetable is the exclusive intellectual property of A Mohamed Suhail.</p></div></div></body></html>`);
   w.document.close();
   w.print();
 }
 
-/* INIT */
+/* ═══════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════ */
 updateSummary();
 renderStaffTable();
 </script>
