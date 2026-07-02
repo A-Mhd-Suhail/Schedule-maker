@@ -827,14 +827,9 @@ function isValidPhone_(phone) {
   return /^[\d\s\-\+\(\)]+$/.test(phone) && digits.length >= 7;
 }
 
-function validatePassword_(password) {
-  const errors = [];
-  if (password.length < 8) errors.push('at least 8 characters');
-  if (!/[A-Z]/.test(password)) errors.push('uppercase letter');
-  if (!/[a-z]/.test(password)) errors.push('lowercase letter');
-  if (!/[0-9]/.test(password)) errors.push('number');
-  if (/[^A-Za-z0-9]/.test(password)) errors.push('special character');
-  return { valid: errors.length === 0, errors };
+ffunction validatePassword_(password) {
+  // No restrictions - any password is valid
+  return { valid: true, errors: [] };
 }
 
 function sanitize_(str) {
