@@ -169,6 +169,21 @@ body{
 
 .success-msg.show{display:block}
 
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 3px solid rgba(255,255,255,.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .app-wrapper{display:none}
 .app-wrapper.active{display:block}
 
@@ -617,7 +632,7 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
         <label>🔐 Password</label>
         <input type="password" id="loginPassword" placeholder="Enter password" required>
       </div>
-      <button type="submit" class="auth-btn">🔓 Login</button>
+      <button type="submit" class="auth-btn" id="loginBtn">🔓 Login</button>
     </form>
 
     <!-- SIGNUP FORM -->
@@ -636,13 +651,13 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
       </div>
       <div class="form-group">
         <label>🔐 Password</label>
-        <input type="password" id="signupPassword" placeholder="Create password (min 6 chars)" required>
+        <input type="password" id="signupPassword" placeholder="Create password (min 8 chars)" required>
       </div>
       <div class="form-group">
         <label>✓ Confirm Password</label>
         <input type="password" id="signupConfirm" placeholder="Confirm password" required>
       </div>
-      <button type="submit" class="auth-btn">📝 Sign Up</button>
+      <button type="submit" class="auth-btn" id="signupBtn">📝 Sign Up</button>
     </form>
   </div>
 </div>
@@ -776,16 +791,37 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
 
 <script>
 /* ═══════════════════════════════════════════
-   CONFIGURATION – UPDATE THIS URL
+   CONFIGURATION
    ══════════════════════════════════════════ */
-const API_URL = 'https://script.google.com/macros/s/AKfycbzsaWpbX6-iqDwe5w3_rnmZXwOuMAo6ncK1JjRdHhWJpug6f1zzimKFbFMRMQ8Mvgl9/exec';  // ← Replace with your Google Apps Script URL
+// ⚠️ REPLACE THIS WITH YOUR ACTUAL GOOGLE APPS SCRIPT URL
+const API_URL = 'YOUR_GOOGLE_APPS_SCRIPT_DEPLOYMENT_URL_HERE';
+
+// Test if API URL is set
+if (!API_URL || API_URL.includes('YOUR_GOOGLE')) {
+  console.error('❌ ERROR: API_URL not configured. Please set it in the script.');
+}
 
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 let currentUser = null;
 let sessionTimeout = null;
 
 /* ═══════════════════════════════════════════
-   SECURITY: INPUT VALIDATION & SANITIZATION
+   DEBUG MODE - SET TO TRUE FOR TROUBLESHOOTING
+   ══════════════════════════════════════════ */
+const DEBUG = true;
+
+function log(msg, data = null) {
+  if (DEBUG) {
+    console.log(`[TimetablePro] ${msg}`, data || '');
+  }
+}
+
+function errorLog(msg, error = null) {
+  console.error(`[TimetablePro ERROR] ${msg}`, error || '');
+}
+
+/* ═══════════════════════════════════════════
+   VALIDATION
    ══════════════════════════════════════════ */
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -806,12 +842,6 @@ function validatePassword(password) {
   return { valid: errors.length === 0, errors };
 }
 
-function sanitizeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
 function sanitizeInput(str) {
   return String(str).trim().substring(0, 255).replace(/[<>]/g, '');
 }
@@ -819,40 +849,42 @@ function sanitizeInput(str) {
 /* ═══════════════════════════════════════════
    SESSION MANAGEMENT
    ══════════════════════════════════════════ */
-function generateSessionToken(userId) {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 15);
-  return btoa(`${userId}:${timestamp}:${random}`);
-}
-
 function storeSession(user) {
   try {
-    const token = generateSessionToken(user.id);
-    sessionStorage.setItem('session_token', token);
     sessionStorage.setItem('user_data', JSON.stringify(user));
     resetSessionTimeout();
-  } catch (_) {}
+    log('Session stored for:', user.email);
+  } catch (e) {
+    errorLog('Store session error', e);
+  }
 }
 
 function restoreSession() {
   try {
     const userData = sessionStorage.getItem('user_data');
-    if (userData) return JSON.parse(userData);
-  } catch (_) { clearSession(); }
+    if (userData) {
+      const user = JSON.parse(userData);
+      log('Session restored for:', user.email);
+      return user;
+    }
+  } catch (e) {
+    errorLog('Restore session error', e);
+    clearSession();
+  }
   return null;
 }
 
 function clearSession() {
-  sessionStorage.removeItem('session_token');
   sessionStorage.removeItem('user_data');
   if (sessionTimeout) clearTimeout(sessionTimeout);
+  log('Session cleared');
 }
 
 function resetSessionTimeout() {
   if (sessionTimeout) clearTimeout(sessionTimeout);
   sessionTimeout = setTimeout(() => {
     if (currentUser) {
-      alert('⏰ Your session has expired. Please login again.');
+      showError('⏰ Session expired. Please login again.');
       handleLogout();
     }
   }, SESSION_TIMEOUT);
@@ -863,24 +895,13 @@ function resetSessionOnActivity() {
 }
 
 /* ═══════════════════════════════════════════
-   AUTH: SWITCH TABS
+   UI MESSAGES
    ══════════════════════════════════════════ */
-function switchAuthTab(tab) {
-  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-  if (tab === 'login') {
-    document.querySelector('.auth-tab:first-child').classList.add('active');
-  } else {
-    document.querySelector('.auth-tab:last-child').classList.add('active');
-  }
-  document.getElementById(tab + 'Form').classList.add('active');
-  clearMessages();
-}
-
 function showError(msg) {
   const el = document.getElementById('errorMsg');
   el.textContent = msg;
   el.classList.add('show');
+  errorLog('Error shown:', msg);
   setTimeout(() => el.classList.remove('show'), 5000);
 }
 
@@ -888,6 +909,7 @@ function showSuccess(msg) {
   const el = document.getElementById('successMsg');
   el.textContent = msg;
   el.classList.add('show');
+  log('Success shown:', msg);
   setTimeout(() => el.classList.remove('show'), 4000);
 }
 
@@ -897,10 +919,34 @@ function clearMessages() {
 }
 
 /* ═══════════════════════════════════════════
-   AUTH: SIGNUP (FIXED ✅)
+   AUTH TABS
    ══════════════════════════════════════════ */
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+  
+  if (tab === 'login') {
+    document.querySelector('.auth-tab:first-child').classList.add('active');
+    document.getElementById('loginForm').classList.add('active');
+  } else {
+    document.querySelector('.auth-tab:last-child').classList.add('active');
+    document.getElementById('signupForm').classList.add('active');
+  }
+  clearMessages();
+  log('Switched to tab:', tab);
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   SIGNUP - IMPROVED WITH BETTER ERROR HANDLING
+   ═════════════════════════════════════════════════════════════════════ */
 async function handleSignup(e) {
   e.preventDefault();
+  
+  // Check API URL
+  if (!API_URL || API_URL.includes('YOUR_GOOGLE')) {
+    showError('❌ Backend not configured. Contact administrator.');
+    return false;
+  }
 
   const name = document.getElementById('signupName').value.trim();
   const email = document.getElementById('signupEmail').value.trim();
@@ -908,74 +954,136 @@ async function handleSignup(e) {
   const pwd = document.getElementById('signupPassword').value;
   const confirm = document.getElementById('signupConfirm').value;
 
-  // Client-side validations
-  if (!name || name.length < 2) { showError('❌ Name must be at least 2 characters!'); return false; }
-  if (!isValidEmail(email)) { showError('❌ Please enter a valid email address!'); return false; }
-  if (!isValidPhone(phone)) { showError('❌ Phone number format is invalid!'); return false; }
+  // Validation
+  if (!name || name.length < 2) {
+    showError('❌ Name must be at least 2 characters');
+    return false;
+  }
+
+  if (!isValidEmail(email)) {
+    showError('❌ Invalid email address');
+    return false;
+  }
+
+  if (!isValidPhone(phone)) {
+    showError('❌ Phone must contain at least 7 digits');
+    return false;
+  }
 
   const pwdVal = validatePassword(pwd);
   if (!pwdVal.valid) {
-    showError('❌ Password must contain: ' + pwdVal.errors.join(', '));
+    showError('❌ Password needs: ' + pwdVal.errors.join(', '));
     return false;
   }
-  if (pwd !== confirm) { showError('❌ Passwords do not match!'); return false; }
+
+  if (pwd !== confirm) {
+    showError('❌ Passwords do not match');
+    return false;
+  }
+
+  // Disable button
+  const btn = document.getElementById('signupBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-spinner"></span>Signing up...';
 
   try {
+    log('Signup attempt for:', email);
+
     const response = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         action: 'signup',
         email: sanitizeInput(email),
         password: pwd,
         name: sanitizeInput(name),
         phone: sanitizeInput(phone)
-      })
+      }),
+      timeout: 15000
     });
 
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
     const data = await response.json();
+    log('Signup response:', data);
+
     if (data.success) {
-      showSuccess('✅ Account created successfully! Please login.');
+      showSuccess('✅ Account created! Redirecting to login...');
       document.getElementById('signupForm').reset();
       setTimeout(() => switchAuthTab('login'), 2000);
     } else {
-      showError('❌ ' + (data.error || 'Signup failed. Please try again.'));
+      showError('❌ ' + (data.error || 'Signup failed'));
     }
   } catch (err) {
-    console.error('Signup error:', err);
-    showError('❌ Network error. Please check your connection and try again.');
+    errorLog('Signup error', err);
+    showError('❌ Connection error: ' + err.message + '\n\nMake sure your Google Apps Script is deployed and the URL is correct.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
   }
+
   return false;
 }
 
-/* ═══════════════════════════════════════════
-   AUTH: LOGIN (FIXED ✅)
-   ══════════════════════════════════════════ */
+/* ═════════════════════════════════════════════════════════════════════
+   LOGIN - IMPROVED WITH BETTER ERROR HANDLING
+   ═════════════════════════════════════════════════════════════════════ */
 async function handleLogin(e) {
   e.preventDefault();
+
+  // Check API URL
+  if (!API_URL || API_URL.includes('YOUR_GOOGLE')) {
+    showError('❌ Backend not configured. Contact administrator.');
+    return false;
+  }
 
   const email = document.getElementById('loginEmail').value.trim();
   const pwd = document.getElementById('loginPassword').value;
 
-  if (!email) { showError('❌ Email is required!'); return false; }
-  if (!pwd) { showError('❌ Password is required!'); return false; }
+  if (!email || !pwd) {
+    showError('❌ Email and password required');
+    return false;
+  }
+
+  // Disable button
+  const btn = document.getElementById('loginBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-spinner"></span>Logging in...';
 
   try {
+    log('Login attempt for:', email);
+
     const response = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         action: 'login',
         email: sanitizeInput(email),
         password: pwd
-      })
+      }),
+      timeout: 15000
     });
 
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
     const data = await response.json();
+    log('Login response:', data);
+
     if (data.success && data.user) {
       currentUser = data.user;
       storeSession(currentUser);
       showSuccess('✅ Login successful!');
+
       setTimeout(() => {
         document.getElementById('authOverlay').style.display = 'none';
         document.getElementById('appWrapper').classList.add('active');
@@ -983,22 +1091,27 @@ async function handleLogin(e) {
         document.getElementById('loginForm').reset();
         clearMessages();
         resetSessionOnActivity();
-      }, 1500);
+      }, 1000);
     } else {
-      showError('❌ ' + (data.error || 'Invalid email or password!'));
+      showError('❌ ' + (data.error || 'Login failed'));
     }
   } catch (err) {
-    console.error('Login error:', err);
-    showError('❌ Network error. Please check your connection and try again.');
+    errorLog('Login error', err);
+    showError('❌ Connection error: ' + err.message + '\n\nMake sure your Google Apps Script is deployed and the URL is correct.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
   }
+
   return false;
 }
 
-/* ═══════════════════════════════════════════
-   AUTH: LOGOUT
-   ══════════════════════════════════════════ */
+/* ═════════════════════════════════════════════════════════════════════
+   LOGOUT
+   ═════════════════════════════════════════════════════════════════════ */
 function handleLogout() {
   if (currentUser && !confirm('Are you sure you want to logout?')) return;
+
   currentUser = null;
   clearSession();
   document.getElementById('appWrapper').classList.remove('active');
@@ -1006,6 +1119,7 @@ function handleLogout() {
   document.getElementById('loginEmail').value = '';
   document.getElementById('loginPassword').value = '';
   clearMessages();
+  log('User logged out');
 }
 
 function updateUserBadge() {
@@ -1016,12 +1130,56 @@ function updateUserBadge() {
   document.getElementById('userEmail').textContent = currentUser.email;
 }
 
-/* ═══════════════════════════════════════════
-   MAIN APP CONSTANTS & STATE
+/* ═════════════════════════════════════════════
+   INIT ON PAGE LOAD
+   ══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  log('Page loaded. Checking for existing session...');
+
+  // Restore session
+  const savedUser = restoreSession();
+  if (savedUser) {
+    currentUser = savedUser;
+    document.getElementById('authOverlay').style.display = 'none';
+    document.getElementById('appWrapper').classList.add('active');
+    updateUserBadge();
+    resetSessionTimeout();
+  }
+
+  // Institution dropdown
+  const dropdown = document.getElementById('institutionDropdown');
+  if (dropdown) {
+    dropdown.addEventListener('change', function() {
+      if (this.value) {
+        document.getElementById('institutionInput').value = this.value;
+        document.getElementById('headerSubtitle').textContent = this.value;
+      }
+    });
+  }
+
+  const input = document.getElementById('institutionInput');
+  if (input) {
+    input.addEventListener('input', function() {
+      document.getElementById('headerSubtitle').textContent = this.value.trim();
+      document.getElementById('institutionDropdown').value = '';
+    });
+  }
+
+  // Activity listeners
+  document.addEventListener('mousemove', resetSessionOnActivity);
+  document.addEventListener('keypress', resetSessionOnActivity);
+  document.addEventListener('click', resetSessionOnActivity);
+
+  // Summary
+  updateSummary();
+  renderStaffTable();
+});
+
+/* ═════════════════════════════════════════════
+   APP STATE & CONSTANTS
    ══════════════════════════════════════════ */
 const DAYS = 6;
 const PERIODS = 5;
-
 const COLORS = [
   '#e63946', '#2a9d8f', '#457b9d', '#f4a261', '#52b788',
   '#e9c46a', '#9b5de5', '#4cc9f0', '#f77f00', '#43aa8b',
@@ -1035,10 +1193,12 @@ let snapHistory = [];
 let histIdx = -1;
 let drag = null;
 
-/* ═══════════════════════════════════════════
+/* ═════════════════════════════════════════════
    UTILITIES
    ══════════════════════════════════════════ */
-function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 window.addEventListener('scroll', () => {
   document.getElementById('floatingBtn').classList.toggle('show', window.scrollY > 300);
@@ -1053,8 +1213,8 @@ function shuffle(arr) {
   return a;
 }
 
-/* ═══════════════════════════════════════════
-   STEP 1 — SETUP
+/* ═════════════════════════════════════════════
+   STEP 1 – SETUP
    ══════════════════════════════════════════ */
 function updateSummary() {
   const sc = +document.getElementById('staffCount').value || 1;
@@ -1071,42 +1231,8 @@ function clearInstitution() {
   document.getElementById('headerSubtitle').textContent = '';
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Restore session
-  const savedUser = restoreSession();
-  if (savedUser) {
-    currentUser = savedUser;
-    document.getElementById('authOverlay').style.display = 'none';
-    document.getElementById('appWrapper').classList.add('active');
-    updateUserBadge();
-    resetSessionTimeout();
-  }
-
-  const dropdown = document.getElementById('institutionDropdown');
-  if (dropdown) {
-    dropdown.addEventListener('change', function() {
-      if (this.value) {
-        document.getElementById('institutionInput').value = this.value;
-        document.getElementById('headerSubtitle').textContent = this.value;
-      }
-    });
-  }
-  const input = document.getElementById('institutionInput');
-  if (input) {
-    input.addEventListener('input', function() {
-      document.getElementById('headerSubtitle').textContent = this.value.trim();
-      document.getElementById('institutionDropdown').value = '';
-    });
-  }
-
-  // Reset session timeout on user activity
-  document.addEventListener('mousemove', resetSessionOnActivity);
-  document.addEventListener('keypress', resetSessionOnActivity);
-  document.addEventListener('click', resetSessionOnActivity);
-});
-
-/* ═══════════════════════════════════════════
-   STEP 2 — STAFF TABLE
+/* ═════════════════════════════════════════════
+   STEP 2 – STAFF TABLE
    ══════════════════════════════════════════ */
 function renderStaffTable() {
   const count = +document.getElementById('staffCount').value || 10;
@@ -1128,9 +1254,9 @@ function renderStaffTable() {
   staff.forEach((s, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input type="text" value="${sanitizeHtml(s.name)}" onchange="staff[${idx}].name=sanitizeInput(this.value)"></td>
+      <td><input type="text" value="${sanitizeInput(s.name).replace(/"/g, '&quot;')}" onchange="staff[${idx}].name=sanitizeInput(this.value)"></td>
       <td><input type="number" value="${s.hours}" min="1" max="30" onchange="staff[${idx}].hours=+this.value||1"></td>
-      <td><input type="text" value="${sanitizeHtml(s.initials)}" maxlength="5" style="text-transform:uppercase" onchange="staff[${idx}].initials=this.value.toUpperCase()"></td>
+      <td><input type="text" value="${sanitizeInput(s.initials).replace(/"/g, '&quot;')}" maxlength="5" style="text-transform:uppercase" onchange="staff[${idx}].initials=this.value.toUpperCase()"></td>
       <td>
         <div class="color-cell">
           <input type="color" value="${s.color}" onchange="staff[${idx}].color=this.value;document.getElementById('cp${idx}').style.background=this.value">
@@ -1143,8 +1269,8 @@ function renderStaffTable() {
   updateSummary();
 }
 
-/* ═══════════════════════════════════════════
-   STEP 3 — GENERATE
+/* ═════════════════════════════════════════════
+   STEP 3 – GENERATE
    ══════════════════════════════════════════ */
 function generateTimetable() {
   if (!CLASSES.length) {
@@ -1183,8 +1309,8 @@ function generateAndRender() {
   pushHistory();
 }
 
-/* ═══════════════════════════════════════════
-   STEP 3 — RENDER
+/* ═════════════════════════════════════════════
+   STEP 3 – RENDER
    ══════════════════════════════════════════ */
 function renderTimetable() {
   buildInfoStrip();
@@ -1272,7 +1398,7 @@ function renderTimetable() {
   buildStaffFilter();
 }
 
-/* ═══════════════════════════════════════════
+/* ═════════════════════════════════════════════
    DRAG AND DROP
    ══════════════════════════════════════════ */
 function attachDragDrop() {
@@ -1325,7 +1451,7 @@ function clearDropHighlights() {
   document.querySelectorAll('.dz-over').forEach(el => el.classList.remove('dz-over'));
 }
 
-/* ═══════════════════════════════════════════
+/* ═════════════════════════════════════════════
    INFO & LEGEND
    ══════════════════════════════════════════ */
 function buildInfoStrip() {
@@ -1369,7 +1495,7 @@ function buildLegend() {
   });
 }
 
-/* ═══════════════════════════════════════════
+/* ═════════════════════════════════════════════
    STAFF FILTER
    ══════════════════════════════════════════ */
 function buildStaffFilter() {
@@ -1385,7 +1511,7 @@ function buildStaffFilter() {
   if (cur !== '' && staff[+cur]) sel.value = cur;
 }
 
-/* ═══════════════════════════════════════════
+/* ═════════════════════════════════════════════
    HISTORY
    ══════════════════════════════════════════ */
 function pushHistory() {
@@ -1396,7 +1522,10 @@ function pushHistory() {
   if (snapHistory.length > 60) { snapHistory.shift(); histIdx--; }
 }
 
-function saveTimetable() { pushHistory(); alert('✅ Timetable saved to undo history!'); }
+function saveTimetable() {
+  pushHistory();
+  alert('✅ Timetable saved to undo history!');
+}
 
 function undoTimetable() {
   if (histIdx > 0) {
@@ -1408,7 +1537,7 @@ function undoTimetable() {
   }
 }
 
-/* ═══════════════════════════════════════════
+/* ═════════════════════════════════════════════
    NAVIGATION
    ══════════════════════════════════════════ */
 function goStep(n) {
@@ -1423,7 +1552,7 @@ function goStep(n) {
 }
 
 function goHome() {
-  if (!confirm('⚠️ Going Home will erase all timetable data. Continue?')) return;
+  if (!confirm('⚠️ This will erase all timetable data. Continue?')) return;
   staff = []; grid = {}; CLASSES = []; snapHistory = []; histIdx = -1;
   document.getElementById('staffCount').value = 10;
   document.getElementById('hoursPerStaff').value = 6;
@@ -1437,7 +1566,7 @@ function goHome() {
   scrollToTop();
 }
 
-/* ═══════════════════════════════════════════
+/* ═════════════════════════════════════════════
    PRINT STAFF
    ══════════════════════════════════════════ */
 function printStaffTimetable() {
@@ -1460,16 +1589,11 @@ function printStaffTimetable() {
   slots.forEach(({ day }) => dayLoad[day] = (dayLoad[day] || 0) + 1);
 
   const w = window.open('', '_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${s.name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#f1f5f9;padding:32px}.wrap{max-width:860px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.12);overflow:hidden}.top{background:linear-gradient(135deg,${c},${c}bb);color:#fff;padding:28px 36px}.top h1{font-size:1.6rem;font-weight:800;margin-bottom:4px}.top p{opacity:.85;font-size:.92rem}.cards{display:flex;gap:0;border-bottom:2px solid #f1f5f9}.card{flex:1;padding:18px 24px;border-right:2px solid #f1f5f9;text-align:center}.card:last-child{border-right:none}.card .val{font-size:2rem;font-weight:900;color:${c}}.card .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:#64748b;font-weight:600;margin-top:2px}.body{padding:28px 36px}table{width:100%;border-collapse:collapse}thead tr{background:${c};color:#fff}thead th{padding:12px 16px;text-align:left;font-weight:600;font-size:.88rem}tbody td{padding:12px 16px;border-bottom:1px solid #f1f5f9;font-size:.88rem}tbody tr:hover{background:#f8fafc}.badge{display:inline-block;padding:4px 11px;border-radius:20px;font-weight:700;font-size:.8rem}.cls-badge{background:${c}22;color:${c};border:1.5px solid ${c}44}.footer{background:#f8fafc;padding:18px 36px;border-top:2px solid #e2e8f0;text-align:center}.footer p{font-size:.78rem;color:#64748b;margin-top:3px}.footer strong{color:${c}}</style></head><body><div class="wrap"><div class="top"><h1>📋 ${s.name} — Schedule</h1><p>Generated by Timetable Pro</p></div><div class="cards"><div class="card"><div class="val">${s.initials}</div><div class="lbl">Initials</div></div><div class="card"><div class="val">${slots.length}</div><div class="lbl">Periods</div></div><div class="card"><div class="val">${s.hours}</div><div class="lbl">Hours</div></div><div class="card"><div class="val">${Object.keys(dayLoad).length}</div><div class="lbl">Days</div></div></div><div class="body"><table><thead><tr><th>#</th><th>Class</th><th>Day</th><th>Period</th></tr></thead><tbody>${slots.map(({cls, day, period}, i) => `<tr><td><strong>${i+1}</strong></td><td><span class="badge cls-badge">${cls}</span></td><td>Day ${day}</td><td>Period ${period}</td></tr>`).join('')}</tbody></table></div><div class="footer"><p><strong>${s.name}</strong> — Weekly Schedule</p><p>© 2026 <strong>A Mohamed Suhail</strong> • Chennai 600037</p><p>This timetable is the exclusive intellectual property of A Mohamed Suhail.</p></div></div></body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${s.name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#f1f5f9;padding:32px}.wrap{max-width:860px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.12);overflow:hidden}.top{background:linear-gradient(135deg,${c},${c}bb);color:#fff;padding:28px 36px}.top h1{font-size:1.6rem;font-weight:800;margin-bottom:4px}.top p{opacity:.85;font-size:.92rem}.cards{display:flex;gap:0;border-bottom:2px solid #f1f5f9}.card{flex:1;padding:18px 24px;border-right:2px solid #f1f5f9;text-align:center}.card:last-child{border-right:none}.card .val{font-size:2rem;font-weight:900;color:${c}}.card .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:#64748b;font-weight:600;margin-top:2px}.body{padding:28px 36px}table{width:100%;border-collapse:collapse}thead tr{background:${c};color:#fff}thead th{padding:12px 16px;text-align:left;font-weight:600;font-size:.88rem}tbody td{padding:12px 16px;border-bottom:1px solid #f1f5f9;font-size:.88rem}tbody tr:hover{background:#f8fafc}.badge{display:inline-block;padding:4px 11px;border-radius:20px;font-weight:700;font-size:.8rem}.cls-badge{background:${c}22;color:${c};border:1.5px solid ${c}44}.footer{background:#f8fafc;padding:18px 36px;border-top:2px solid #e2e8f0;text-align:center}.footer p{font-size:.78rem;color:#64748b;margin-top:3px}.footer strong{color:${c}}</style></head><body><div class="wrap"><div class="top"><h1>📋 ${s.name} — Schedule</h1><p>Generated by Timetable Pro</p></div><div class="cards"><div class="card"><div class="val">${s.initials}</div><div class="lbl">Initials</div></div><div class="card"><div class="val">${slots.length}</div><div class="lbl">Periods</div></div><div class="card"><div class="val">${s.hours}</div><div class="lbl">Hours</div></div><div class="card"><div class="val">${Object.keys(dayLoad).length}</div><div class="lbl">Days</div></div></div><div class="body"><table><thead><tr><th>#</th><th>Class</th><th>Day</th><th>Period</th></tr></thead><tbody>${slots.map(({cls, day, period}, i) => `<tr><td><strong>${i+1}</strong></td><td><span class="badge cls-badge">${cls}</span></td><td>Day ${day}</td><td>Period ${period}</td></tr>`).join('')}</tbody></table></div><div class="footer"><p><strong>${s.name}</strong> — Weekly Schedule</p><p>© 2026 <span style="color:${c}"><strong>A Mohamed Suhail</strong></span> • Chennai 600037</p></div></div></body></html>`);
   w.document.close();
   w.print();
 }
-
-/* ═══════════════════════════════════════════
-   INIT
-   ══════════════════════════════════════════ */
-updateSummary();
-renderStaffTable();
 </script>
+
 </body>
 </html>
