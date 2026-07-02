@@ -790,24 +790,67 @@ input[type="number"]:focus,input[type="text"]:focus,select:focus{
 <button class="floating-btn" id="floatingBtn" onclick="scrollToTop()">⬆ Take Me Up</button>
 
 <script>
-/* ═══════════════════════════════════════════
-   CONFIGURATION
-   ══════════════════════════════════════════ */
-// ⚠️ REPLACE THIS WITH YOUR ACTUAL GOOGLE APPS SCRIPT URL
-const API_URL = 'https://script.google.com/macros/s/AKfycbzsaWpbX6-iqDwe5w3_rnmZXwOuMAo6ncK1JjRdHhWJpug6f1zzimKFbFMRMQ8Mvgl9/exec';
+/* ═══════════════════════════════════════════════════════════════════
+   BACKEND CODE FROM GOOGLE APPS SCRIPT
+   ═══════════════════════════════════════════════════════════════════ */
 
-// Test if API URL is set
-if (!API_URL || API_URL.includes('YOUR_GOOGLE')) {
-  console.error('❌ ERROR: API_URL not configured. Please set it in the script.');
+// ─── BACKEND CONFIGURATION ──────────────────────────────────────────
+const SHEET_NAME = 'Users';
+const HEADER = ['user_id', 'email', 'password_hash', 'name', 'phone_number', 'created_at'];
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutes
+
+// ─── PASSWORD HASHING (CLIENT-SIDE SIMULATION) ──────────────────────
+async function hashPassword_(password) {
+  if (!password) throw new Error('Password cannot be empty');
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return btoa(hashHex);
 }
+
+async function verifyPassword_(password, hash) {
+  try {
+    return await hashPassword_(password) === hash;
+  } catch (_) { return false; }
+}
+
+// ─── INPUT VALIDATION ──────────────────────────────────────────────
+function isValidEmail_(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isValidPhone_(phone) {
+  const digits = phone.replace(/\D/g, '');
+  return /^[\d\s\-\+\(\)]+$/.test(phone) && digits.length >= 7;
+}
+
+function validatePassword_(password) {
+  const errors = [];
+  if (password.length < 8) errors.push('at least 8 characters');
+  if (!/[A-Z]/.test(password)) errors.push('uppercase letter');
+  if (!/[a-z]/.test(password)) errors.push('lowercase letter');
+  if (!/[0-9]/.test(password)) errors.push('number');
+  if (/[^A-Za-z0-9]/.test(password)) errors.push('special character');
+  return { valid: errors.length === 0, errors };
+}
+
+function sanitize_(str) {
+  return String(str).trim().substring(0, 255).replace(/[<>]/g, '');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FRONTEND CONFIGURATION
+   ═══════════════════════════════════════════════════════════════════ */
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbzsaWpbX6-iqDwe5w3_rnmZXwOuMAo6ncK1JjRdHhWJpug6f1zzimKFbFMRMQ8Mvgl9/exec';
 
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 let currentUser = null;
 let sessionTimeout = null;
 
-/* ═══════════════════════════════════════════
-   DEBUG MODE - SET TO TRUE FOR TROUBLESHOOTING
-   ══════════════════════════════════════════ */
 const DEBUG = true;
 
 function log(msg, data = null) {
@@ -820,35 +863,10 @@ function errorLog(msg, error = null) {
   console.error(`[TimetablePro ERROR] ${msg}`, error || '');
 }
 
-/* ═══════════════════════════════════════════
-   VALIDATION
-   ══════════════════════════════════════════ */
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-function isValidPhone(phone) {
-  const digits = phone.replace(/\D/g, '');
-  return /^[\d\s\-\+\(\)]+$/.test(phone) && digits.length >= 7;
-}
-
-function validatePassword(password) {
-  const errors = [];
-  if (password.length < 8) errors.push('at least 8 characters');
-  if (!/[A-Z]/.test(password)) errors.push('uppercase letter');
-  if (!/[a-z]/.test(password)) errors.push('lowercase letter');
-  if (!/[0-9]/.test(password)) errors.push('number');
-  if (!/[^A-Za-z0-9]/.test(password)) errors.push('special character');
-  return { valid: errors.length === 0, errors };
-}
-
-function sanitizeInput(str) {
-  return String(str).trim().substring(0, 255).replace(/[<>]/g, '');
-}
-
-/* ═══════════════════════════════════════════
+/* ═════════════════════════════════════════════════════════════════════
    SESSION MANAGEMENT
-   ══════════════════════════════════════════ */
+   ═════════════════════════════════════════════════════════════════════ */
+
 function storeSession(user) {
   try {
     sessionStorage.setItem('user_data', JSON.stringify(user));
@@ -894,9 +912,10 @@ function resetSessionOnActivity() {
   if (currentUser) resetSessionTimeout();
 }
 
-/* ═══════════════════════════════════════════
+/* ═════════════════════════════════════════════════════════════════════
    UI MESSAGES
-   ══════════════════════════════════════════ */
+   ═════════════════════════════════════════════════════════════════════ */
+
 function showError(msg) {
   const el = document.getElementById('errorMsg');
   el.textContent = msg;
@@ -918,9 +937,10 @@ function clearMessages() {
   document.getElementById('successMsg').classList.remove('show');
 }
 
-/* ═══════════════════════════════════════════
+/* ═════════════════════════════════════════════════════════════════════
    AUTH TABS
-   ══════════════════════════════════════════ */
+   ═════════════════════════════════════════════════════════════════════ */
+
 function switchAuthTab(tab) {
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
@@ -937,12 +957,12 @@ function switchAuthTab(tab) {
 }
 
 /* ═════════════════════════════════════════════════════════════════════
-   SIGNUP - IMPROVED WITH BETTER ERROR HANDLING
+   SIGNUP
    ═════════════════════════════════════════════════════════════════════ */
+
 async function handleSignup(e) {
   e.preventDefault();
   
-  // Check API URL
   if (!API_URL || API_URL.includes('YOUR_GOOGLE')) {
     showError('❌ Backend not configured. Contact administrator.');
     return false;
@@ -954,23 +974,22 @@ async function handleSignup(e) {
   const pwd = document.getElementById('signupPassword').value;
   const confirm = document.getElementById('signupConfirm').value;
 
-  // Validation
   if (!name || name.length < 2) {
     showError('❌ Name must be at least 2 characters');
     return false;
   }
 
-  if (!isValidEmail(email)) {
+  if (!isValidEmail_(email)) {
     showError('❌ Invalid email address');
     return false;
   }
 
-  if (!isValidPhone(phone)) {
+  if (!isValidPhone_(phone)) {
     showError('❌ Phone must contain at least 7 digits');
     return false;
   }
 
-  const pwdVal = validatePassword(pwd);
+  const pwdVal = validatePassword_(pwd);
   if (!pwdVal.valid) {
     showError('❌ Password needs: ' + pwdVal.errors.join(', '));
     return false;
@@ -981,7 +1000,6 @@ async function handleSignup(e) {
     return false;
   }
 
-  // Disable button
   const btn = document.getElementById('signupBtn');
   const originalText = btn.textContent;
   btn.disabled = true;
@@ -997,10 +1015,10 @@ async function handleSignup(e) {
       },
       body: JSON.stringify({
         action: 'signup',
-        email: sanitizeInput(email),
+        email: sanitize_(email),
         password: pwd,
-        name: sanitizeInput(name),
-        phone: sanitizeInput(phone)
+        name: sanitize_(name),
+        phone: sanitize_(phone)
       }),
       timeout: 15000
     });
@@ -1031,12 +1049,12 @@ async function handleSignup(e) {
 }
 
 /* ═════════════════════════════════════════════════════════════════════
-   LOGIN - IMPROVED WITH BETTER ERROR HANDLING
+   LOGIN
    ═════════════════════════════════════════════════════════════════════ */
+
 async function handleLogin(e) {
   e.preventDefault();
 
-  // Check API URL
   if (!API_URL || API_URL.includes('YOUR_GOOGLE')) {
     showError('❌ Backend not configured. Contact administrator.');
     return false;
@@ -1050,7 +1068,6 @@ async function handleLogin(e) {
     return false;
   }
 
-  // Disable button
   const btn = document.getElementById('loginBtn');
   const originalText = btn.textContent;
   btn.disabled = true;
@@ -1066,7 +1083,7 @@ async function handleLogin(e) {
       },
       body: JSON.stringify({
         action: 'login',
-        email: sanitizeInput(email),
+        email: sanitize_(email),
         password: pwd
       }),
       timeout: 15000
@@ -1109,6 +1126,7 @@ async function handleLogin(e) {
 /* ═════════════════════════════════════════════════════════════════════
    LOGOUT
    ═════════════════════════════════════════════════════════════════════ */
+
 function handleLogout() {
   if (currentUser && !confirm('Are you sure you want to logout?')) return;
 
@@ -1133,10 +1151,10 @@ function updateUserBadge() {
 /* ═════════════════════════════════════════════
    INIT ON PAGE LOAD
    ══════════════════════════════════════════ */
+
 document.addEventListener('DOMContentLoaded', () => {
   log('Page loaded. Checking for existing session...');
 
-  // Restore session
   const savedUser = restoreSession();
   if (savedUser) {
     currentUser = savedUser;
@@ -1146,7 +1164,6 @@ document.addEventListener('DOMContentLoaded', () => {
     resetSessionTimeout();
   }
 
-  // Institution dropdown
   const dropdown = document.getElementById('institutionDropdown');
   if (dropdown) {
     dropdown.addEventListener('change', function() {
@@ -1165,12 +1182,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Activity listeners
   document.addEventListener('mousemove', resetSessionOnActivity);
   document.addEventListener('keypress', resetSessionOnActivity);
   document.addEventListener('click', resetSessionOnActivity);
 
-  // Summary
   updateSummary();
   renderStaffTable();
 });
@@ -1178,6 +1193,7 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ═════════════════════════════════════════════
    APP STATE & CONSTANTS
    ══════════════════════════════════════════ */
+
 const DAYS = 6;
 const PERIODS = 5;
 const COLORS = [
@@ -1196,6 +1212,7 @@ let drag = null;
 /* ═════════════════════════════════════════════
    UTILITIES
    ══════════════════════════════════════════ */
+
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1216,6 +1233,7 @@ function shuffle(arr) {
 /* ═════════════════════════════════════════════
    STEP 1 – SETUP
    ══════════════════════════════════════════ */
+
 function updateSummary() {
   const sc = +document.getElementById('staffCount').value || 1;
   const hp = +document.getElementById('hoursPerStaff').value || 1;
@@ -1234,6 +1252,7 @@ function clearInstitution() {
 /* ═════════════════════════════════════════════
    STEP 2 – STAFF TABLE
    ══════════════════════════════════════════ */
+
 function renderStaffTable() {
   const count = +document.getElementById('staffCount').value || 10;
   const defaultHrs = +document.getElementById('hoursPerStaff').value || 6;
@@ -1254,9 +1273,9 @@ function renderStaffTable() {
   staff.forEach((s, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input type="text" value="${sanitizeInput(s.name).replace(/"/g, '&quot;')}" onchange="staff[${idx}].name=sanitizeInput(this.value)"></td>
+      <td><input type="text" value="${sanitize_(s.name).replace(/"/g, '&quot;')}" onchange="staff[${idx}].name=sanitize_(this.value)"></td>
       <td><input type="number" value="${s.hours}" min="1" max="30" onchange="staff[${idx}].hours=+this.value||1"></td>
-      <td><input type="text" value="${sanitizeInput(s.initials).replace(/"/g, '&quot;')}" maxlength="5" style="text-transform:uppercase" onchange="staff[${idx}].initials=this.value.toUpperCase()"></td>
+      <td><input type="text" value="${sanitize_(s.initials).replace(/"/g, '&quot;')}" maxlength="5" style="text-transform:uppercase" onchange="staff[${idx}].initials=this.value.toUpperCase()"></td>
       <td>
         <div class="color-cell">
           <input type="color" value="${s.color}" onchange="staff[${idx}].color=this.value;document.getElementById('cp${idx}').style.background=this.value">
@@ -1272,6 +1291,7 @@ function renderStaffTable() {
 /* ═════════════════════════════════════════════
    STEP 3 – GENERATE
    ══════════════════════════════════════════ */
+
 function generateTimetable() {
   if (!CLASSES.length) {
     CLASSES = [
@@ -1312,6 +1332,7 @@ function generateAndRender() {
 /* ═════════════════════════════════════════════
    STEP 3 – RENDER
    ══════════════════════════════════════════ */
+
 function renderTimetable() {
   buildInfoStrip();
   buildLegend();
@@ -1401,6 +1422,7 @@ function renderTimetable() {
 /* ═════════════════════════════════════════════
    DRAG AND DROP
    ══════════════════════════════════════════ */
+
 function attachDragDrop() {
   document.querySelectorAll('.staff-box:not(.empty)').forEach(box => {
     box.addEventListener('dragstart', e => {
@@ -1454,6 +1476,7 @@ function clearDropHighlights() {
 /* ═════════════════════════════════════════════
    INFO & LEGEND
    ══════════════════════════════════════════ */
+
 function buildInfoStrip() {
   const strip = document.getElementById('infoStrip');
   if (!strip) return;
@@ -1498,6 +1521,7 @@ function buildLegend() {
 /* ═════════════════════════════════════════════
    STAFF FILTER
    ══════════════════════════════════════════ */
+
 function buildStaffFilter() {
   const sel = document.getElementById('staffFilter');
   const cur = sel.value;
@@ -1514,6 +1538,7 @@ function buildStaffFilter() {
 /* ═════════════════════════════════════════════
    HISTORY
    ══════════════════════════════════════════ */
+
 function pushHistory() {
   const snap = JSON.stringify(grid);
   snapHistory = snapHistory.slice(0, histIdx + 1);
@@ -1540,6 +1565,7 @@ function undoTimetable() {
 /* ═════════════════════════════════════════════
    NAVIGATION
    ══════════════════════════════════════════ */
+
 function goStep(n) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -1569,6 +1595,7 @@ function goHome() {
 /* ═════════════════════════════════════════════
    PRINT STAFF
    ══════════════════════════════════════════ */
+
 function printStaffTimetable() {
   const si = +document.getElementById('staffFilter').value;
   if (isNaN(si) || !staff[si]) return alert('Please select a valid staff member.');
