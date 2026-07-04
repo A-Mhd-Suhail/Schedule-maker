@@ -958,11 +958,6 @@ function switchAuthTab(tab) {
 async function handleSignup(e) {
   e.preventDefault();
   
-  if (!API_URL || API_URL.includes('YOUR_GOOGLE')) {
-    showError('❌ Backend not configured. Contact administrator.');
-    return false;
-  }
-
   const name = document.getElementById('signupName').value.trim();
   const email = document.getElementById('signupEmail').value.trim();
   const phone = document.getElementById('signupPhone').value.trim();
@@ -984,12 +979,6 @@ async function handleSignup(e) {
     return false;
   }
 
-  const pwdVal = validatePassword_(pwd);
-  if (!pwdVal.valid) {
-    showError('❌ Password needs: ' + pwdVal.errors.join(', '));
-    return false;
-  }
-
   if (pwd !== confirm) {
     showError('❌ Passwords do not match');
     return false;
@@ -1001,30 +990,22 @@ async function handleSignup(e) {
   btn.innerHTML = '<span class="loading-spinner"></span>Signing up...';
 
   try {
-    log('Signup attempt for:', email);
+    // Create form data (this avoids CORS preflight)
+    const formData = new FormData();
+    formData.append('action', 'signup');
+    formData.append('email', email);
+    formData.append('password', pwd);
+    formData.append('name', name);
+    formData.append('phone', phone);
 
     const response = await fetch(API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'signup',
-        email: sanitize_(email),
-        password: pwd,
-        name: sanitize_(name),
-        phone: sanitize_(phone)
-      }),
-      timeout: 15000
+      body: formData  // Don't set Content-Type header
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    log('Signup response:', data);
-
+    const text = await response.text();
+    const data = JSON.parse(text);
+    
     if (data.success) {
       showSuccess('✅ Account created! Redirecting to login...');
       document.getElementById('signupForm').reset();
@@ -1033,8 +1014,7 @@ async function handleSignup(e) {
       showError('❌ ' + (data.error || 'Signup failed'));
     }
   } catch (err) {
-    errorLog('Signup error', err);
-    showError('❌ Connection error: ' + err.message + '\n\nMake sure your Google Apps Script is deployed and the URL is correct.');
+    showError('❌ Connection error: ' + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = originalText;
