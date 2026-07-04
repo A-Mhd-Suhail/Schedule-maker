@@ -827,7 +827,7 @@ function isValidPhone_(phone) {
   return /^[\d\s\-\+\(\)]+$/.test(phone) && digits.length >= 7;
 }
 
-ffunction validatePassword_(password) {
+function validatePassword_(password) {
   // No restrictions - any password is valid
   return { valid: true, errors: [] };
 }
@@ -1143,7 +1143,7 @@ function updateUserBadge() {
   document.getElementById('userEmail').textContent = currentUser.email;
 }
 
-/* ═════════════════════════════════════════════
+/* ══════════════════════════════════════════
    INIT ON PAGE LOAD
    ══════════════════════════════════════════ */
 
