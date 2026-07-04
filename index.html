@@ -1030,11 +1030,6 @@ async function handleSignup(e) {
 async function handleLogin(e) {
   e.preventDefault();
 
-  if (!API_URL || API_URL.includes('YOUR_GOOGLE')) {
-    showError('❌ Backend not configured. Contact administrator.');
-    return false;
-  }
-
   const email = document.getElementById('loginEmail').value.trim();
   const pwd = document.getElementById('loginPassword').value;
 
@@ -1049,27 +1044,19 @@ async function handleLogin(e) {
   btn.innerHTML = '<span class="loading-spinner"></span>Logging in...';
 
   try {
-    log('Login attempt for:', email);
+    // Create form data
+    const formData = new FormData();
+    formData.append('action', 'login');
+    formData.append('email', email);
+    formData.append('password', pwd);
 
     const response = await fetch(API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'login',
-        email: sanitize_(email),
-        password: pwd
-      }),
-      timeout: 15000
+      body: formData  // Don't set Content-Type header
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    log('Login response:', data);
+    const text = await response.text();
+    const data = JSON.parse(text);
 
     if (data.success && data.user) {
       currentUser = data.user;
@@ -1088,8 +1075,7 @@ async function handleLogin(e) {
       showError('❌ ' + (data.error || 'Login failed'));
     }
   } catch (err) {
-    errorLog('Login error', err);
-    showError('❌ Connection error: ' + err.message + '\n\nMake sure your Google Apps Script is deployed and the URL is correct.');
+    showError('❌ Connection error: ' + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = originalText;
